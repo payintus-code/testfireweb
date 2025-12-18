@@ -2,7 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import Image from "next/image";
-import { MoreHorizontal, Pencil, Star, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Star, Trash2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Player } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
 
 const statusVariant: { [key in Player["status"]]: "default" | "secondary" | "destructive" } = {
   available: "default",
@@ -31,6 +32,43 @@ const statusText: { [key in Player["status"]]: string } = {
 type GetColumnsOptions = {
   onEdit: (player: Player) => void;
   onDelete: (playerId: string) => void;
+};
+
+const TimeAvailableCell = ({ row }: { row: { original: Player } }) => {
+    const { status, availableSince } = row.original;
+    const [elapsedTime, setElapsedTime] = useState('00:00');
+  
+    useEffect(() => {
+      let interval: NodeJS.Timeout | undefined;
+  
+      if (status === 'available' && availableSince) {
+        const updateElapsedTime = () => {
+          const now = Date.now();
+          const seconds = Math.floor((now - availableSince) / 1000);
+          const minutes = Math.floor(seconds / 60);
+          const displaySeconds = seconds % 60;
+          setElapsedTime(`${String(minutes).padStart(2, '0')}:${String(displaySeconds).padStart(2, '0')}`);
+        };
+  
+        updateElapsedTime();
+        interval = setInterval(updateElapsedTime, 1000);
+      } else {
+        setElapsedTime('--:--');
+      }
+  
+      return () => {
+        if (interval) {
+          clearInterval(interval);
+        }
+      };
+    }, [status, availableSince]);
+  
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Clock className="w-4 h-4" />
+        <span>{elapsedTime}</span>
+      </div>
+    );
 };
 
 export const columns = ({ onEdit, onDelete }: GetColumnsOptions): ColumnDef<Player>[] => [
@@ -94,6 +132,10 @@ export const columns = ({ onEdit, onDelete }: GetColumnsOptions): ColumnDef<Play
         </Badge>
       );
     },
+  },
+  {
+    header: "Time Available",
+    cell: TimeAvailableCell,
   },
   {
     id: "actions",

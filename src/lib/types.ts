@@ -6,6 +6,7 @@ export type Player = {
   skillLevel: number; // 1 to 5
   status: 'available' | 'in-match' | 'unavailable';
   avatarUrl: string;
+  availableSince?: number; // Timestamp for when the player became available
 };
 
 export type Match = {

@@ -21,7 +21,7 @@ export default function Home() {
     if (storedPlayers) {
       setPlayers(JSON.parse(storedPlayers));
     } else {
-      setPlayers(PLAYERS);
+      setPlayers(PLAYERS.map(p => ({...p, availableSince: p.status === 'available' ? Date.now() : undefined })));
     }
     
     setCourts(COURTS);
@@ -39,10 +39,15 @@ export default function Home() {
         return { ...c, matchId: matchOnCourt ? matchOnCourt.id : null };
       }));
       
-      setPlayers(prev => prev.map(p => ({
-        ...p,
-        status: playersInMatches.has(p.id) ? 'in-match' : 'available'
-      })));
+      setPlayers(prev => {
+        const storedPlayers = localStorage.getItem("players");
+        const currentPlayers = storedPlayers ? JSON.parse(storedPlayers) : PLAYERS;
+        return currentPlayers.map((p: Player) => ({
+          ...p,
+          status: playersInMatches.has(p.id) ? 'in-match' : p.status === 'in-match' ? 'available' : p.status,
+          availableSince: playersInMatches.has(p.id) ? undefined : p.availableSince ?? (p.status === 'available' ? Date.now() : undefined)
+        }));
+      });
 
     }
 
@@ -82,7 +87,7 @@ export default function Home() {
     
     const playerIdsInMatch = [...newMatch.teamA, ...newMatch.teamB].map(p => p.id);
     setPlayers(prev => prev.map(p => 
-      playerIdsInMatch.includes(p.id) ? { ...p, status: 'in-match' } : p
+      playerIdsInMatch.includes(p.id) ? { ...p, status: 'in-match', availableSince: undefined } : p
     ));
 
     setDialogOpen(false);
@@ -116,7 +121,7 @@ export default function Home() {
 
     if (newStatus === 'completed' || newStatus === 'cancelled') {
         setPlayers(prev => prev.map(p => 
-          playersToUpdate.includes(p.id) ? { ...p, status: 'available' } : p
+          playersToUpdate.includes(p.id) ? { ...p, status: 'available', availableSince: Date.now() } : p
         ));
         setCourts(prev => prev.map(c => c.matchId === matchId ? {...c, matchId: null} : c));
     }

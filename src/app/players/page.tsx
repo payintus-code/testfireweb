@@ -73,6 +73,7 @@ export default function PlayersPage() {
         id: `p${Date.now()}`,
         status: 'available',
         avatarUrl: `https://picsum.photos/seed/p${Date.now()}/100/100`,
+        availableSince: Date.now(),
       };
       setPlayers((prev) => [...prev, newPlayer]);
       toast({
