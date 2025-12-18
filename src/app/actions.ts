@@ -1,37 +1,48 @@
 "use server";
 
-import type { Player } from "@/lib/types";
+import { suggestMatchPairing, SuggestMatchPairingInput } from "@/ai/ai-suggested-match-pairing";
+import type { Player, Match } from "@/lib/types";
 
 /**
- * Simulates a random match generation process.
- * Selects 4 players from the available pool and divides them into two teams.
+ * Generates a balanced match using AI.
  *
  * @param availablePlayers - An array of players with 'available' status.
- * @returns An object containing teamA and teamB arrays of players.
+ * @param previousMatches - An array of previous matches to consider for player repetition constraints.
+ * @returns An object containing teamA and teamB arrays of players, and an explanation.
  */
-export async function generateRandomMatch(
-  availablePlayers: Player[]
-): Promise<{ teamA: Player[]; teamB: Player[] }> {
+export async function generateAIMatch(
+  availablePlayers: Player[],
+  previousMatches: Match[]
+): Promise<{ teamA: Player[]; teamB: Player[]; explanation: string }> {
   
-  // 1. Ensure we have at least 4 players.
   if (availablePlayers.length < 4) {
-    // Not enough players to form a match.
-    return { teamA: [], teamB: [] };
+    throw new Error("Not enough players to generate a match.");
+  }
+  
+  const previousMatchPlayers = previousMatches.map(match => [...match.teamA, ...match.teamB]);
+
+  const input: SuggestMatchPairingInput = {
+    availablePlayers: availablePlayers.map(p => ({ name: p.name, skillLevel: p.skillLevel, age: p.age, gender: p.gender })),
+    previousMatches: previousMatchPlayers.map(team => team.map(p => ({ name: p.name, skillLevel: p.skillLevel, age: p.age, gender: p.gender }))),
+  };
+
+  const result = await suggestMatchPairing(input);
+
+  // Helper to find the full Player object from the AI's response which only contains partial data
+  const findFullPlayer = (playerName: string) => {
+    const player = availablePlayers.find(p => p.name === playerName);
+    if (!player) {
+        throw new Error(`AI returned a player not in the available list: ${playerName}`);
+    }
+    return player;
   }
 
-  // 2. Shuffle players to get a random set of 4 for the match.
-  const shuffled = [...availablePlayers].sort(() => 0.5 - Math.random());
-  const selected = shuffled.slice(0, 4);
-
-  // 3. Split the 4 selected players into two teams.
-  const teamA = [selected[0], selected[1]];
-  const teamB = [selected[2], selected[3]];
-  
-  // Add a small delay to simulate network latency
-  await new Promise(resolve => setTimeout(resolve, 500));
+  const teamA = result.team1.players.map(p => findFullPlayer(p.name));
+  const teamB = result.team2.players.map(p => findFullPlayer(p.name));
 
   return {
     teamA,
     teamB,
+    explanation: result.explanation
   };
 }

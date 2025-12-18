@@ -120,6 +120,7 @@ export default function Home() {
   }
   
   const availablePlayers = players.filter(p => p.status === 'available');
+  const previousMatches = matches.filter(m => m.status === 'completed');
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -143,6 +144,7 @@ export default function Home() {
           onOpenChange={setDialogOpen}
           court={selectedCourt}
           availablePlayers={availablePlayers}
+          previousMatches={previousMatches}
           onMatchCreate={handleMatchCreate}
         />
       )}

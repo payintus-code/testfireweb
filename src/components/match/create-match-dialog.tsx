@@ -15,16 +15,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { generateRandomMatch } from "@/app/actions";
+import { generateAIMatch } from "@/app/actions";
 import type { Court, Player, Match } from "@/lib/types";
 import { Separator } from "../ui/separator";
-import { Users, Wand2, Loader2, Star, Shield } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Info, Users, Wand2, Loader2, Star, Shield } from "lucide-react";
 
 type CreateMatchDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   court: Court;
   availablePlayers: Player[];
+  previousMatches: Match[];
   onMatchCreate: (newMatch: Omit<Match, "id" | "status" | "scoreA" | "scoreB">) => void;
 };
 
@@ -33,10 +35,11 @@ export function CreateMatchDialog({
   onOpenChange,
   court,
   availablePlayers,
+  previousMatches,
   onMatchCreate,
 }: CreateMatchDialogProps) {
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
-  const [generatedMatch, setGeneratedMatch] = useState<{ teamA: Player[], teamB: Player[] } | null>(null);
+  const [generatedMatch, setGeneratedMatch] = useState<{ teamA: Player[], teamB: Player[], explanation: string } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
@@ -63,24 +66,21 @@ export function CreateMatchDialog({
     resetState();
   };
 
-  const handleRandomGenerate = async () => {
+  const handleAIGenerate = async () => {
     setIsGenerating(true);
     setGeneratedMatch(null);
     try {
-      const result = await generateRandomMatch(availablePlayers);
-      if (result.teamA.length === 2 && result.teamB.length === 2) {
-        setGeneratedMatch(result);
-        toast({
-            title: "Match Generated",
-            description: "A random match has been created.",
-        });
-      } else {
-        throw new Error("Failed to generate a valid match.");
-      }
+      const result = await generateAIMatch(availablePlayers, previousMatches);
+      setGeneratedMatch(result);
+      toast({
+        title: "AI Match Generated",
+        description: "A balanced match has been suggested by the AI.",
+      });
     } catch (error) {
+        console.error(error);
       toast({
         title: "Generation Failed",
-        description: "Could not generate a match. Please try again or select manually.",
+        description: error instanceof Error ? error.message : "Could not generate a match. Please try again or select manually.",
         variant: "destructive",
       });
     } finally {
@@ -88,7 +88,7 @@ export function CreateMatchDialog({
     }
   };
 
-  const handleRandomCreate = () => {
+  const handleAICreate = () => {
     if (!generatedMatch) {
       toast({
         title: "No Match Generated",
@@ -97,7 +97,7 @@ export function CreateMatchDialog({
       });
       return;
     }
-    onMatchCreate({ courtId: court.id, ...generatedMatch });
+    onMatchCreate({ courtId: court.id, teamA: generatedMatch.teamA, teamB: generatedMatch.teamB });
     resetState();
   };
 
@@ -114,28 +114,28 @@ export function CreateMatchDialog({
         <DialogHeader>
           <DialogTitle>Create Match on {court.name}</DialogTitle>
           <DialogDescription>
-            Assemble teams manually or generate a random match.
+            Use AI to generate a balanced match or assemble teams manually.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="random" className="w-full">
+        <Tabs defaultValue="ai" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="random"><Wand2 className="mr-2 h-4 w-4"/>Random</TabsTrigger>
+            <TabsTrigger value="ai"><Wand2 className="mr-2 h-4 w-4"/>Suggest with AI</TabsTrigger>
             <TabsTrigger value="manual"><Users className="mr-2 h-4 w-4"/>Manual</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="random" className="mt-4">
+          <TabsContent value="ai" className="mt-4">
              <div className="space-y-4 text-center">
                 <p className="text-sm text-muted-foreground">
-                    Create a random match from available players.
+                    Let AI suggest a balanced match based on player skill levels and recent play history.
                 </p>
-                <Button onClick={handleRandomGenerate} disabled={isGenerating}>
+                <Button onClick={handleAIGenerate} disabled={isGenerating || availablePlayers.length < 4}>
                     {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isGenerating ? "Generating..." : "Generate Random Match"}
+                    {isGenerating ? "Thinking..." : "Suggest Match"}
                 </Button>
 
                 {generatedMatch && (
-                    <div className="mt-4 rounded-lg border p-4 text-left">
-                        <h3 className="font-semibold mb-4 text-center">Generated Match</h3>
+                    <div className="mt-4 rounded-lg border p-4 text-left space-y-4">
+                        <h3 className="font-semibold mb-2 text-center">AI Suggested Match</h3>
                         <div className="flex justify-around items-start">
                             <div className="w-1/2 pr-2 border-r">
                                 <h4 className="font-medium flex items-center justify-center mb-2">Team A <Shield className="ml-2 h-4 w-4 text-blue-500" /></h4>
@@ -148,8 +148,15 @@ export function CreateMatchDialog({
                                 <p className="text-xs font-bold text-center mt-2 flex items-center justify-center gap-1">{teamSkillLevel(generatedMatch.teamB)} <Star className="h-3 w-3 text-yellow-400"/></p>
                             </div>
                         </div>
+                        <Alert>
+                            <Info className="h-4 w-4" />
+                            <AlertTitle>AI Explanation</AlertTitle>
+                            <AlertDescription>
+                                {generatedMatch.explanation}
+                            </AlertDescription>
+                        </Alert>
                          <DialogFooter className="mt-4">
-                            <Button onClick={handleRandomCreate}>Schedule This Match</Button>
+                            <Button onClick={handleAICreate}>Schedule This Match</Button>
                         </DialogFooter>
                     </div>
                 )}
