@@ -70,6 +70,9 @@ export function CreateMatchDialog({
     setIsGenerating(true);
     setGeneratedMatch(null);
     try {
+      if (!availablePlayers || availablePlayers.length < 4) {
+        throw new Error("Not enough available players to generate a match.");
+      }
       const result = await generateAIMatch(availablePlayers, previousMatches);
       setGeneratedMatch(result);
       toast({
