@@ -45,6 +45,7 @@ export async function suggestMatchPairing(input: SuggestMatchPairingInput): Prom
 
 const suggestMatchPairingPrompt = ai.definePrompt({
   name: 'suggestMatchPairingPrompt',
+  model: 'googleai/gemini-pro',
   input: {
     schema: SuggestMatchPairingInputSchema,
   },
