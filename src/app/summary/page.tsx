@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Trophy, Users } from "lucide-react";
+import { Trophy, Clock } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
@@ -66,6 +66,14 @@ export default function SummaryPage() {
     setCompletedMatches([]);
   };
 
+  const getDuration = (match: Match) => {
+    if (match.startTime && match.endTime) {
+      const duration = Math.floor((match.endTime - match.startTime) / 1000 / 60);
+      return `${duration} min`;
+    }
+    return "-";
+  }
+
   if (!isMounted) {
     return (
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -98,6 +106,7 @@ export default function SummaryPage() {
                   <TableHead>Court</TableHead>
                   <TableHead>Team A</TableHead>
                   <TableHead>Team B</TableHead>
+                  <TableHead>Duration</TableHead>
                   <TableHead className="text-right">Score</TableHead>
                 </TableRow>
               </TableHeader>
@@ -112,6 +121,12 @@ export default function SummaryPage() {
                     </TableCell>
                     <TableCell>
                       <TeamDisplay team={match.teamB} />
+                    </TableCell>
+                     <TableCell>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Clock className="w-4 h-4"/>
+                        <span>{getDuration(match)}</span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right font-mono font-semibold">
                       {match.scoreA} - {match.scoreB}

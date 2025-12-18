@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Swords, Users, Calendar, Trophy, Play, Flag, Ban, Check, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Swords, Users, Calendar, Trophy, Play, Flag, Ban, Check, X, Clock } from "lucide-react";
 import Image from "next/image";
 import {
   Card,
@@ -60,8 +60,12 @@ const EndMatchDialog = ({ match, onUpdateMatchStatus, open, onOpenChange }: { ma
     }
     
     const handleScoreChange = (setter: (value: number) => void, value: string) => {
-        const newScore = parseInt(value);
-        setter(isNaN(newScore) ? 0 : newScore);
+        const newScore = parseInt(value, 10);
+        if (isNaN(newScore)) {
+          setter(0);
+        } else {
+          setter(newScore);
+        }
     }
 
     return (
@@ -76,12 +80,12 @@ const EndMatchDialog = ({ match, onUpdateMatchStatus, open, onOpenChange }: { ma
                 <div className="flex items-center justify-center gap-4 py-4">
                     <div className="flex flex-col items-center gap-2">
                         <label htmlFor="scoreA" className="text-sm font-medium">Team A</label>
-                        <Input id="scoreA" type="number" value={scoreA} onChange={(e) => handleScoreChange(setScoreA, e.target.value)} className="w-20 text-center text-lg" />
+                        <Input id="scoreA" type="number" value={scoreA || ''} onChange={(e) => handleScoreChange(setScoreA, e.target.value)} className="w-20 text-center text-lg" />
                     </div>
                     <span className="text-2xl font-bold">-</span>
                     <div className="flex flex-col items-center gap-2">
                         <label htmlFor="scoreB" className="text-sm font-medium">Team B</label>
-                        <Input id="scoreB" type="number" value={scoreB} onChange={(e) => handleScoreChange(setScoreB, e.target.value)} className="w-20 text-center text-lg" />
+                        <Input id="scoreB" type="number" value={scoreB || ''} onChange={(e) => handleScoreChange(setScoreB, e.target.value)} className="w-20 text-center text-lg" />
                     </div>
                 </div>
                 <AlertDialogFooter>
@@ -95,6 +99,42 @@ const EndMatchDialog = ({ match, onUpdateMatchStatus, open, onOpenChange }: { ma
     );
 };
 
+const MatchTimer = ({ match }: { match: Match }) => {
+  const [elapsedMinutes, setElapsedMinutes] = useState(0);
+
+  useEffect(() => {
+    if (match.status !== 'in-progress' || !match.startTime) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = Math.floor((now - (match.startTime ?? now)) / 1000 / 60);
+      setElapsedMinutes(elapsed);
+    }, 1000); // Update every second for accuracy, though display is in minutes
+
+    return () => clearInterval(interval);
+  }, [match.status, match.startTime]);
+
+  const getDuration = () => {
+    if (match.status === 'in-progress' && match.startTime) {
+      return `${elapsedMinutes} min`;
+    }
+    if (match.status === 'completed' && match.startTime && match.endTime) {
+      const duration = Math.floor((match.endTime - match.startTime) / 1000 / 60);
+      return `${duration} min`;
+    }
+    return '0 min';
+  }
+
+  return (
+      <div className="flex items-center gap-2">
+        <Clock className="w-4 h-4" />
+        <span>{getDuration()}</span>
+      </div>
+  )
+}
+
 export default function CourtCard({
   court,
   match,
@@ -106,17 +146,13 @@ export default function CourtCard({
   const renderMatchContent = () => {
     if (!match) return null;
 
-    const handleCancelMatch = () => {
-      onUpdateMatchStatus(match.id, 'cancelled');
-    };
-
     return (
       <>
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
               <TeamDisplay team={match.teamA} />
-              <span className="text-muted-foreground text-sm">vs</span>
+              <span className="text-muted-foreground text-sm pt-1">vs</span>
               <TeamDisplay team={match.teamB} />
             </div>
             <div className="text-right">
@@ -132,10 +168,11 @@ export default function CourtCard({
                   <Users className="w-4 h-4" />
                   <span>{match.teamA[0].name.split(' ')[0]} & {match.teamA[1].name.split(' ')[0]}</span>
               </div>
-               <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                   <Users className="w-4 h-4" />
                   <span>{match.teamB[0].name.split(' ')[0]} & {match.teamB[1].name.split(' ')[0]}</span>
               </div>
+              { (match.status === 'in-progress' || match.status === 'completed') && <MatchTimer match={match} /> }
           </div>
         </div>
         {match && <EndMatchDialog match={match} onUpdateMatchStatus={onUpdateMatchStatus} open={isEndMatchDialogOpen} onOpenChange={setEndMatchDialogOpen} />}

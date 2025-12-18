@@ -87,9 +87,16 @@ export default function Home() {
   const handleMatchUpdate = (matchId: string, newStatus: Match['status'], scoreA?: number, scoreB?: number) => {
     setMatches(prev => prev.map(m => {
         if (m.id === matchId) {
-            const updatedMatch = {...m, status: newStatus};
+            const updatedMatch: Match = {...m, status: newStatus};
             if (scoreA !== undefined) updatedMatch.scoreA = scoreA;
             if (scoreB !== undefined) updatedMatch.scoreB = scoreB;
+            
+            if (newStatus === 'in-progress' && !m.startTime) {
+              updatedMatch.startTime = Date.now();
+            } else if (newStatus === 'completed' && !m.endTime) {
+              updatedMatch.endTime = Date.now();
+            }
+
             return updatedMatch;
         }
         return m;

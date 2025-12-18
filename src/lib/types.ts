@@ -16,6 +16,8 @@ export type Match = {
   scoreA: number;
   scoreB: number;
   status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+  startTime?: number;
+  endTime?: number;
 };
 
 export type Court = {
