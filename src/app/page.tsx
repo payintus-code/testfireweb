@@ -16,10 +16,41 @@ export default function Home() {
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
 
   useEffect(() => {
+    // Load initial data
     setCourts(COURTS);
     setPlayers(PLAYERS);
+    
+    // Load matches from localStorage
+    const storedMatches = localStorage.getItem("matches");
+    if (storedMatches) {
+      const parsedMatches: Match[] = JSON.parse(storedMatches);
+      setMatches(parsedMatches);
+
+      // Restore court and player states based on loaded matches
+      const activeMatchIds = new Set(parsedMatches.map(m => m.id));
+      const playersInMatches = new Set(parsedMatches.flatMap(m => [...m.teamA, ...m.teamB]).map(p => p.id));
+      
+      setCourts(prev => prev.map(c => {
+        const matchOnCourt = parsedMatches.find(m => m.courtId === c.id && m.status !== 'completed');
+        return { ...c, matchId: matchOnCourt ? matchOnCourt.id : null };
+      }));
+      
+      setPlayers(prev => prev.map(p => ({
+        ...p,
+        status: playersInMatches.has(p.id) ? 'in-match' : 'available'
+      })));
+
+    }
+
     setIsMounted(true);
   }, []);
+
+  // Persist matches to localStorage whenever they change
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("matches", JSON.stringify(matches));
+    }
+  }, [matches, isMounted]);
 
   const handleCreateMatchClick = (court: Court) => {
     setSelectedCourt(court);
@@ -53,10 +84,18 @@ export default function Home() {
     setSelectedCourt(null);
   };
 
-  const handleMatchUpdate = (matchId: string, newStatus: Match['status']) => {
-    setMatches(prev => prev.map(m => m.id === matchId ? {...m, status: newStatus} : m));
+  const handleMatchUpdate = (matchId: string, newStatus: Match['status'], scoreA?: number, scoreB?: number) => {
+    setMatches(prev => prev.map(m => {
+        if (m.id === matchId) {
+            const updatedMatch = {...m, status: newStatus};
+            if (scoreA !== undefined) updatedMatch.scoreA = scoreA;
+            if (scoreB !== undefined) updatedMatch.scoreB = scoreB;
+            return updatedMatch;
+        }
+        return m;
+    }));
 
-    if (newStatus === 'completed') {
+    if (newStatus === 'completed' || newStatus === 'cancelled') {
       const match = matches.find(m => m.id === matchId);
       if (match) {
         const playerIdsInMatch = [...match.teamA, ...match.teamB].map(p => p.id);

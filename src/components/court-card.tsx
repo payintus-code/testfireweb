@@ -1,6 +1,7 @@
 "use client";
 
-import { Swords, Users, Calendar, Trophy, Play, Flag, Ban } from "lucide-react";
+import { useState } from "react";
+import { Swords, Users, Calendar, Trophy, Play, Flag, Ban, Check, X } from "lucide-react";
 import Image from "next/image";
 import {
   Card,
@@ -10,15 +11,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import type { Court, Match } from "@/lib/types";
 
 type CourtCardProps = {
   court: Court;
   match: Match | null;
   onCreateMatch: (courtId: number) => void;
-  onUpdateMatchStatus: (matchId: string, newStatus: Match['status']) => void;
+  onUpdateMatchStatus: (matchId: string, newStatus: Match['status'], scoreA?: number, scoreB?: number) => void;
 };
 
 const TeamDisplay = ({ team }: { team: Match['teamA'] }) => (
@@ -37,43 +50,91 @@ const TeamDisplay = ({ team }: { team: Match['teamA'] }) => (
   </div>
 );
 
+const EndMatchDialog = ({ match, onUpdateMatchStatus, open, onOpenChange }: { match: Match, onUpdateMatchStatus: CourtCardProps['onUpdateMatchStatus'], open: boolean, onOpenChange: (open: boolean) => void }) => {
+    const [scoreA, setScoreA] = useState(match.scoreA);
+    const [scoreB, setScoreB] = useState(match.scoreB);
+
+    const handleConfirmEnd = () => {
+        onUpdateMatchStatus(match.id, 'completed', scoreA, scoreB);
+        onOpenChange(false);
+    }
+    
+    return (
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>End Match on {match.courtId}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Please enter the final score for the match.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="flex items-center justify-center gap-4 py-4">
+                    <div className="flex flex-col items-center gap-2">
+                        <label htmlFor="scoreA" className="text-sm font-medium">Team A</label>
+                        <Input id="scoreA" type="number" value={scoreA} onChange={(e) => setScoreA(parseInt(e.target.value))} className="w-20 text-center text-lg" />
+                    </div>
+                    <span className="text-2xl font-bold">-</span>
+                    <div className="flex flex-col items-center gap-2">
+                        <label htmlFor="scoreB" className="text-sm font-medium">Team B</label>
+                        <Input id="scoreB" type="number" value={scoreB} onChange={(e) => setScoreB(parseInt(e.target.value))} className="w-20 text-center text-lg" />
+                    </div>
+                </div>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmEnd}>
+                        <Check className="mr-2 h-4 w-4" /> Confirm & End
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+};
+
 export default function CourtCard({
   court,
   match,
   onCreateMatch,
   onUpdateMatchStatus,
 }: CourtCardProps) {
+  const [isEndMatchDialogOpen, setEndMatchDialogOpen] = useState(false);
 
   const renderMatchContent = () => {
     if (!match) return null;
 
+    const handleCancelMatch = () => {
+      onUpdateMatchStatus(match.id, 'cancelled');
+    };
+
     return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <TeamDisplay team={match.teamA} />
-            <span className="text-muted-foreground text-sm">vs</span>
-            <TeamDisplay team={match.teamB} />
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold tracking-tighter">
-              {match.scoreA} - {match.scoreB}
+      <>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <TeamDisplay team={match.teamA} />
+              <span className="text-muted-foreground text-sm">vs</span>
+              <TeamDisplay team={match.teamB} />
             </div>
-            <div className="text-xs text-muted-foreground uppercase">{match.status}</div>
+            <div className="text-right">
+              <div className="text-2xl font-bold tracking-tighter">
+                {match.scoreA} - {match.scoreB}
+              </div>
+              <div className="text-xs text-muted-foreground uppercase">{match.status.replace('-', ' ')}</div>
+            </div>
+          </div>
+          <Separator />
+          <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  <span>{match.teamA[0].name.split(' ')[0]} & {match.teamA[1].name.split(' ')[0]}</span>
+              </div>
+               <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  <span>{match.teamB[0].name.split(' ')[0]} & {match.teamB[1].name.split(' ')[0]}</span>
+              </div>
           </div>
         </div>
-        <Separator />
-        <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                <span>{match.teamA[0].name.split(' ')[0]} & {match.teamA[1].name.split(' ')[0]}</span>
-            </div>
-             <div className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                <span>{match.teamB[0].name.split(' ')[0]} & {match.teamB[1].name.split(' ')[0]}</span>
-            </div>
-        </div>
-      </div>
+        {match && <EndMatchDialog match={match} onUpdateMatchStatus={onUpdateMatchStatus} open={isEndMatchDialogOpen} onOpenChange={setEndMatchDialogOpen} />}
+      </>
     );
   };
   
@@ -95,7 +156,7 @@ export default function CourtCard({
       <CardHeader>
         <CardTitle>{court.name}</CardTitle>
         <CardDescription>
-          {match ? `Match in progress` : "Awaiting next match"}
+          {match ? `Match ${match.status.replace('-', ' ')}` : "Awaiting next match"}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
@@ -109,14 +170,30 @@ export default function CourtCard({
             </Button>
           )}
           {match.status === 'in-progress' && (
-            <Button variant="default" size="sm" onClick={() => onUpdateMatchStatus(match.id, 'completed')}>
+            <Button variant="default" size="sm" onClick={() => setEndMatchDialogOpen(true)}>
                 <Flag className="mr-2 h-4 w-4" /> End Match
             </Button>
           )}
-           {match.status !== 'completed' && (
-            <Button variant="outline" size="sm" onClick={() => onUpdateMatchStatus(match.id, 'completed')}>
-                <Ban className="mr-2 h-4 w-4" /> Cancel
-            </Button>
+           {(match.status === 'scheduled' || match.status === 'in-progress') && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <X className="mr-2 h-4 w-4" /> Cancel
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action will cancel the current match. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Go Back</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onUpdateMatchStatus(match.id, 'cancelled')}>Confirm</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </CardFooter>
       )}

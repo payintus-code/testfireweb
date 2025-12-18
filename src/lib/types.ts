@@ -15,7 +15,7 @@ export type Match = {
   teamB: Player[];
   scoreA: number;
   scoreB: number;
-  status: 'scheduled' | 'in-progress' | 'completed';
+  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
 };
 
 export type Court = {
