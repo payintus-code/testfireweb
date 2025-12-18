@@ -1,0 +1,132 @@
+"use client"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+
+import { Button } from "@/components/ui/button"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import type { Player } from "@/lib/types"
+
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "Name must be at least 2 characters.",
+  }),
+  age: z.coerce.number().min(1, {
+    message: "Age must be a positive number.",
+  }),
+  gender: z.enum(["Male", "Female", "Other"]),
+  skillLevel: z.number().min(1).max(5),
+})
+
+type PlayerFormProps = {
+  onSubmit: (data: z.infer<typeof formSchema>, id?: string) => void
+  player?: Player
+}
+
+export function PlayerForm({ onSubmit, player }: PlayerFormProps) {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: player?.name || "",
+      age: player?.age || 18,
+      gender: player?.gender || "Male",
+      skillLevel: player?.skillLevel || 3,
+    },
+  })
+
+  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+    onSubmit(values, player?.id);
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Player's full name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="age"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Age</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="25" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="gender"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Gender</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a gender" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="skillLevel"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Skill Level: {field.value}</FormLabel>
+              <FormControl>
+                <Slider
+                  min={1}
+                  max={5}
+                  step={1}
+                  defaultValue={[field.value]}
+                  onValueChange={(value) => field.onChange(value[0])}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit">{player ? "Save Changes" : "Create Player"}</Button>
+      </form>
+    </Form>
+  )
+}
