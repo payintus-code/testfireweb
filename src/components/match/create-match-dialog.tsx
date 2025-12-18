@@ -15,18 +15,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { generateAIMatch } from "@/app/actions";
+import { generateBalancedMatch } from "@/app/actions";
 import type { Court, Player, Match } from "@/lib/types";
 import { Separator } from "../ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Users, Wand2, Loader2, Star, Shield } from "lucide-react";
+import { Info, Users, Wand2, Loader2, Star, Shield, Dices } from "lucide-react";
 
 type CreateMatchDialogProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   court: Court;
   availablePlayers: Player[];
-  previousMatches: Match[];
   onMatchCreate: (newMatch: Omit<Match, "id" | "status" | "scoreA" | "scoreB">) => void;
 };
 
@@ -35,7 +34,6 @@ export function CreateMatchDialog({
   onOpenChange,
   court,
   availablePlayers,
-  previousMatches,
   onMatchCreate,
 }: CreateMatchDialogProps) {
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
@@ -66,18 +64,18 @@ export function CreateMatchDialog({
     resetState();
   };
 
-  const handleAIGenerate = async () => {
+  const handleRandomGenerate = async () => {
     setIsGenerating(true);
     setGeneratedMatch(null);
     try {
       if (!availablePlayers || availablePlayers.length < 4) {
         throw new Error("Not enough available players to generate a match.");
       }
-      const result = await generateAIMatch(availablePlayers, previousMatches);
+      const result = await generateBalancedMatch(availablePlayers);
       setGeneratedMatch(result);
       toast({
-        title: "AI Match Generated",
-        description: "A balanced match has been suggested by the AI.",
+        title: "Random Match Generated",
+        description: "A balanced match has been suggested.",
       });
     } catch (error) {
         console.error(error);
@@ -91,7 +89,7 @@ export function CreateMatchDialog({
     }
   };
 
-  const handleAICreate = () => {
+  const handleGeneratedCreate = () => {
     if (!generatedMatch) {
       toast({
         title: "No Match Generated",
@@ -117,28 +115,28 @@ export function CreateMatchDialog({
         <DialogHeader>
           <DialogTitle>Create Match on {court.name}</DialogTitle>
           <DialogDescription>
-            Use AI to generate a balanced match or assemble teams manually.
+            Use random generation for a balanced match or assemble teams manually.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="ai" className="w-full">
+        <Tabs defaultValue="random" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="ai"><Wand2 className="mr-2 h-4 w-4"/>Suggest with AI</TabsTrigger>
+            <TabsTrigger value="random"><Dices className="mr-2 h-4 w-4"/>Random</TabsTrigger>
             <TabsTrigger value="manual"><Users className="mr-2 h-4 w-4"/>Manual</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="ai" className="mt-4">
+          <TabsContent value="random" className="mt-4">
              <div className="space-y-4 text-center">
                 <p className="text-sm text-muted-foreground">
-                    Let AI suggest a balanced match based on player skill levels and recent play history.
+                    Let us suggest a balanced match based on player skill levels.
                 </p>
-                <Button onClick={handleAIGenerate} disabled={isGenerating || availablePlayers.length < 4}>
+                <Button onClick={handleRandomGenerate} disabled={isGenerating || availablePlayers.length < 4}>
                     {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isGenerating ? "Thinking..." : "Suggest Match"}
+                    {isGenerating ? "Generating..." : "Suggest Match"}
                 </Button>
 
                 {generatedMatch && (
                     <div className="mt-4 rounded-lg border p-4 text-left space-y-4">
-                        <h3 className="font-semibold mb-2 text-center">AI Suggested Match</h3>
+                        <h3 className="font-semibold mb-2 text-center">Suggested Match</h3>
                         <div className="flex justify-around items-start">
                             <div className="w-1/2 pr-2 border-r">
                                 <h4 className="font-medium flex items-center justify-center mb-2">Team A <Shield className="ml-2 h-4 w-4 text-blue-500" /></h4>
@@ -153,13 +151,13 @@ export function CreateMatchDialog({
                         </div>
                         <Alert>
                             <Info className="h-4 w-4" />
-                            <AlertTitle>AI Explanation</AlertTitle>
+                            <AlertTitle>Explanation</AlertTitle>
                             <AlertDescription>
                                 {generatedMatch.explanation}
                             </AlertDescription>
                         </Alert>
                          <DialogFooter className="mt-4">
-                            <Button onClick={handleAICreate}>Schedule This Match</Button>
+                            <Button onClick={handleGeneratedCreate}>Schedule This Match</Button>
                         </DialogFooter>
                     </div>
                 )}
