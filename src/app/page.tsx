@@ -16,22 +16,26 @@ export default function Home() {
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
 
   useEffect(() => {
-    // Load initial data
-    setCourts(COURTS);
-    setPlayers(PLAYERS);
+    // Load initial data from localStorage if available
+    const storedPlayers = localStorage.getItem("players");
+    if (storedPlayers) {
+      setPlayers(JSON.parse(storedPlayers));
+    } else {
+      setPlayers(PLAYERS);
+    }
     
-    // Load matches from localStorage
+    setCourts(COURTS);
+    
     const storedMatches = localStorage.getItem("matches");
     if (storedMatches) {
       const parsedMatches: Match[] = JSON.parse(storedMatches);
       setMatches(parsedMatches);
 
       // Restore court and player states based on loaded matches
-      const activeMatchIds = new Set(parsedMatches.map(m => m.id));
-      const playersInMatches = new Set(parsedMatches.flatMap(m => [...m.teamA, ...m.teamB]).map(p => p.id));
+      const playersInMatches = new Set(parsedMatches.flatMap(m => m.status !== 'completed' && m.status !== 'cancelled' ? [...m.teamA, ...m.teamB].map(p => p.id) : []));
       
       setCourts(prev => prev.map(c => {
-        const matchOnCourt = parsedMatches.find(m => m.courtId === c.id && m.status !== 'completed');
+        const matchOnCourt = parsedMatches.find(m => m.courtId === c.id && m.status !== 'completed' && m.status !== 'cancelled');
         return { ...c, matchId: matchOnCourt ? matchOnCourt.id : null };
       }));
       
@@ -45,12 +49,13 @@ export default function Home() {
     setIsMounted(true);
   }, []);
 
-  // Persist matches to localStorage whenever they change
+  // Persist matches and players to localStorage whenever they change
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem("matches", JSON.stringify(matches));
+      localStorage.setItem("players", JSON.stringify(players));
     }
-  }, [matches, isMounted]);
+  }, [matches, players, isMounted]);
 
   const handleCreateMatchClick = (court: Court) => {
     setSelectedCourt(court);
@@ -85,8 +90,13 @@ export default function Home() {
   };
 
   const handleMatchUpdate = (matchId: string, newStatus: Match['status'], scoreA?: number, scoreB?: number) => {
-    setMatches(prev => prev.map(m => {
+    let playersToUpdate: string[] = [];
+    
+    const updatedMatches = matches.map(m => {
         if (m.id === matchId) {
+            if (newStatus === 'completed' || newStatus === 'cancelled') {
+              playersToUpdate = [...m.teamA, ...m.teamB].map(p => p.id);
+            }
             const updatedMatch: Match = {...m, status: newStatus};
             if (scoreA !== undefined) updatedMatch.scoreA = scoreA;
             if (scoreB !== undefined) updatedMatch.scoreB = scoreB;
@@ -100,17 +110,15 @@ export default function Home() {
             return updatedMatch;
         }
         return m;
-    }));
+    });
+    setMatches(updatedMatches);
+
 
     if (newStatus === 'completed' || newStatus === 'cancelled') {
-      const match = matches.find(m => m.id === matchId);
-      if (match) {
-        const playerIdsInMatch = [...match.teamA, ...match.teamB].map(p => p.id);
         setPlayers(prev => prev.map(p => 
-          playerIdsInMatch.includes(p.id) ? { ...p, status: 'available' } : p
+          playersToUpdate.includes(p.id) ? { ...p, status: 'available' } : p
         ));
         setCourts(prev => prev.map(c => c.matchId === matchId ? {...c, matchId: null} : c));
-      }
     }
   };
 

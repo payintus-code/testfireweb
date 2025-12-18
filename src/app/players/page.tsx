@@ -26,9 +26,20 @@ export default function PlayersPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    setPlayers(PLAYERS);
+    const storedPlayers = localStorage.getItem("players");
+    if (storedPlayers) {
+      setPlayers(JSON.parse(storedPlayers));
+    } else {
+      setPlayers(PLAYERS);
+    }
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("players", JSON.stringify(players));
+    }
+  }, [players, isMounted]);
 
   const handleEdit = (player: Player) => {
     setEditingPlayer(player);
