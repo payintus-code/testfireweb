@@ -15,10 +15,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { generateBalancedMatch } from "@/app/actions";
+import { generateRandomMatch } from "@/app/actions";
 import type { Court, Player, Match } from "@/lib/types";
 import { Separator } from "../ui/separator";
-import { Users, Bot, Loader2, Star, Shield } from "lucide-react";
+import { Users, Wand2, Loader2, Star, Shield } from "lucide-react";
 
 type CreateMatchDialogProps = {
   isOpen: boolean;
@@ -67,16 +67,15 @@ export function CreateMatchDialog({
     setIsGenerating(true);
     setGeneratedMatch(null);
     try {
-      // In a real app, you might pass more context like players who played today
-      const result = await generateBalancedMatch(availablePlayers);
+      const result = await generateRandomMatch(availablePlayers);
       if (result.teamA.length === 2 && result.teamB.length === 2) {
         setGeneratedMatch(result);
         toast({
             title: "Match Generated",
-            description: "A balanced match has been created by the AI.",
+            description: "A random match has been created.",
         });
       } else {
-        throw new Error("AI failed to generate a valid match.");
+        throw new Error("Failed to generate a valid match.");
       }
     } catch (error) {
       toast({
@@ -115,23 +114,23 @@ export function CreateMatchDialog({
         <DialogHeader>
           <DialogTitle>Create Match on {court.name}</DialogTitle>
           <DialogDescription>
-            Assemble teams manually or use AI to generate a balanced match.
+            Assemble teams manually or generate a random match.
           </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="random" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="random"><Bot className="mr-2 h-4 w-4"/>Random (AI)</TabsTrigger>
+            <TabsTrigger value="random"><Wand2 className="mr-2 h-4 w-4"/>Random</TabsTrigger>
             <TabsTrigger value="manual"><Users className="mr-2 h-4 w-4"/>Manual</TabsTrigger>
           </TabsList>
           
           <TabsContent value="random" className="mt-4">
              <div className="space-y-4 text-center">
                 <p className="text-sm text-muted-foreground">
-                    Let AI create a fair and balanced match for you.
+                    Create a random match from available players.
                 </p>
                 <Button onClick={handleRandomGenerate} disabled={isGenerating}>
                     {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isGenerating ? "Generating..." : "Generate Balanced Match"}
+                    {isGenerating ? "Generating..." : "Generate Random Match"}
                 </Button>
 
                 {generatedMatch && (
