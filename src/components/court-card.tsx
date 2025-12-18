@@ -59,6 +59,11 @@ const EndMatchDialog = ({ match, onUpdateMatchStatus, open, onOpenChange }: { ma
         onOpenChange(false);
     }
     
+    const handleScoreChange = (setter: (value: number) => void, value: string) => {
+        const newScore = parseInt(value);
+        setter(isNaN(newScore) ? 0 : newScore);
+    }
+
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
@@ -71,12 +76,12 @@ const EndMatchDialog = ({ match, onUpdateMatchStatus, open, onOpenChange }: { ma
                 <div className="flex items-center justify-center gap-4 py-4">
                     <div className="flex flex-col items-center gap-2">
                         <label htmlFor="scoreA" className="text-sm font-medium">Team A</label>
-                        <Input id="scoreA" type="number" value={scoreA} onChange={(e) => setScoreA(parseInt(e.target.value))} className="w-20 text-center text-lg" />
+                        <Input id="scoreA" type="number" value={scoreA} onChange={(e) => handleScoreChange(setScoreA, e.target.value)} className="w-20 text-center text-lg" />
                     </div>
                     <span className="text-2xl font-bold">-</span>
                     <div className="flex flex-col items-center gap-2">
                         <label htmlFor="scoreB" className="text-sm font-medium">Team B</label>
-                        <Input id="scoreB" type="number" value={scoreB} onChange={(e) => setScoreB(parseInt(e.target.value))} className="w-20 text-center text-lg" />
+                        <Input id="scoreB" type="number" value={scoreB} onChange={(e) => handleScoreChange(setScoreB, e.target.value)} className="w-20 text-center text-lg" />
                     </div>
                 </div>
                 <AlertDialogFooter>
