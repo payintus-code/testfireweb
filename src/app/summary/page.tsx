@@ -42,6 +42,12 @@ const TeamDisplay = ({ team }: { team: Player[] }) => (
   </div>
 );
 
+const formatDuration = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
 export default function SummaryPage() {
   const [completedMatches, setCompletedMatches] = useState<Match[]>([]);
   const [isMounted, setIsMounted] = useState(false);
@@ -68,8 +74,8 @@ export default function SummaryPage() {
 
   const getDuration = (match: Match) => {
     if (match.startTime && match.endTime) {
-      const duration = Math.floor((match.endTime - match.startTime) / 1000 / 60);
-      return `${duration} min`;
+      const durationSeconds = Math.floor((match.endTime - match.startTime) / 1000);
+      return formatDuration(durationSeconds);
     }
     return "-";
   }

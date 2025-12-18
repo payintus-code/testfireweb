@@ -99,32 +99,40 @@ const EndMatchDialog = ({ match, onUpdateMatchStatus, open, onOpenChange }: { ma
     );
 };
 
+const formatDuration = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+
 const MatchTimer = ({ match }: { match: Match }) => {
-  const [elapsedMinutes, setElapsedMinutes] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
     if (match.status !== 'in-progress' || !match.startTime) {
+      setElapsedSeconds(0);
       return;
     }
 
     const interval = setInterval(() => {
       const now = Date.now();
-      const elapsed = Math.floor((now - (match.startTime ?? now)) / 1000 / 60);
-      setElapsedMinutes(elapsed);
-    }, 1000); // Update every second for accuracy, though display is in minutes
+      const elapsed = Math.floor((now - (match.startTime ?? now)) / 1000);
+      setElapsedSeconds(elapsed);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [match.status, match.startTime]);
 
   const getDuration = () => {
     if (match.status === 'in-progress' && match.startTime) {
-      return `${elapsedMinutes} min`;
+        return formatDuration(elapsedSeconds);
     }
     if (match.status === 'completed' && match.startTime && match.endTime) {
-      const duration = Math.floor((match.endTime - match.startTime) / 1000 / 60);
-      return `${duration} min`;
+      const duration = Math.floor((match.endTime - match.startTime) / 1000);
+      return formatDuration(duration);
     }
-    return '0 min';
+    return '00:00';
   }
 
   return (
