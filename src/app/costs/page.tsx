@@ -87,14 +87,10 @@ export default function CostsPage() {
         const playersInMatch = [...match.teamA, ...match.teamB];
         const shuttlecocksUsedInMatch = match.shuttlecocksUsed || 0;
         
-        // This is the cost per player for this specific match
-        const costPerPlayerForThisMatch = (shuttlecocksUsedInMatch / playersInMatch.length) * shuttlecockFeePerPerson;
-        
         playersInMatch.forEach(player => {
             if (playerCostsMap.has(player.id)) {
                 const currentCost = playerCostsMap.get(player.id)!;
-                // Accumulate the number of shuttles used per player based on their share in each match
-                currentCost.shuttlecocksUsed += shuttlecocksUsedInMatch / playersInMatch.length;
+                currentCost.shuttlecocksUsed += shuttlecocksUsedInMatch;
             }
         });
     });
@@ -102,7 +98,7 @@ export default function CostsPage() {
     // Final calculation for total cost
     const costs = Array.from(playerCostsMap.values()).map(cost => {
       // Calculate total shuttlecock cost based on the accumulated usage
-      const totalShuttlecockCostForPlayer = cost.shuttlecocksUsed * shuttlecockFeePerPerson;
+      const totalShuttlecockCostForPlayer = cost.matchesPlayed * shuttlecockFeePerPerson;
       return {
         ...cost,
         shuttlecockCost: totalShuttlecockCostForPlayer,
@@ -115,8 +111,8 @@ export default function CostsPage() {
   }, [completedMatches, players, dailyFee, shuttlecockFeePerPerson]);
 
   const totalShuttlecocksUsed = useMemo(() => {
-    return playerCosts.reduce((acc, cost) => acc + cost.shuttlecocksUsed, 0);
-  }, [playerCosts]);
+    return completedMatches.reduce((acc, match) => acc + (match.shuttlecocksUsed || 0), 0);
+  }, [completedMatches]);
 
   const totalShuttlecockCost = playerCosts.reduce((acc, cost) => acc + cost.shuttlecockCost, 0);
   const totalDailyFees = playerCosts.filter(p => p.dailyFee > 0).length * dailyFee;
@@ -162,7 +158,7 @@ export default function CostsPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">฿{totalShuttlecockCost.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">{totalShuttlecocksUsed.toFixed(2)} shuttles used</p>
+                <p className="text-xs text-muted-foreground">{totalShuttlecocksUsed.toFixed(0)} shuttles used</p>
             </CardContent>
         </Card>
       </div>
@@ -232,7 +228,7 @@ export default function CostsPage() {
                     <TableCell className="text-center">{cost.matchesPlayed}</TableCell>
                     <TableCell className="text-right">฿{cost.dailyFee.toFixed(2)}</TableCell>
                     <TableCell className="text-right">฿{cost.shuttlecockCost.toFixed(2)}</TableCell>
-                    <TableCell className="text-center">{cost.shuttlecocksUsed.toFixed(2)}</TableCell>
+                    <TableCell className="text-center">{cost.shuttlecocksUsed.toFixed(0)}</TableCell>
                     <TableCell className="text-right font-bold">฿{cost.totalCost.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
