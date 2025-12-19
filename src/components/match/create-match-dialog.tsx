@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -159,10 +160,6 @@ export function CreateMatchDialog({
       }
       const result = await generateBalancedMatch(availablePlayers);
       setGeneratedMatch(result);
-      toast({
-        title: "Random Match Generated",
-        description: "A balanced match has been suggested.",
-      });
     } catch (error) {
         console.error(error);
       toast({

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -54,10 +55,17 @@ const TeamDisplay = ({ team }: { team: Match['teamA'] }) => (
 const EndMatchDialog = ({ match, onUpdateMatch, open, onOpenChange }: { match: Match, onUpdateMatch: CourtCardProps['onUpdateMatch'], open: boolean, onOpenChange: (open: boolean) => void }) => {
     const [scoreA, setScoreA] = useState(match.scoreA);
     const [scoreB, setScoreB] = useState(match.scoreB);
-    const [shuttlecocksUsed, setShuttlecocksUsed] = useState(match.shuttlecocksUsed);
+    
+    useEffect(() => {
+      if (open) {
+        setScoreA(match.scoreA);
+        setScoreB(match.scoreB);
+      }
+    }, [open, match.scoreA, match.scoreB]);
+
 
     const handleConfirmEnd = () => {
-        onUpdateMatch(match.id, { status: 'completed', scoreA, scoreB, shuttlecocksUsed });
+        onUpdateMatch(match.id, { status: 'completed', scoreA, scoreB, shuttlecocksUsed: match.shuttlecocksUsed });
         onOpenChange(false);
     }
     
@@ -74,9 +82,9 @@ const EndMatchDialog = ({ match, onUpdateMatch, open, onOpenChange }: { match: M
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>End Match on {match.courtId}</AlertDialogTitle>
+                    <AlertDialogTitle>End Match on Court {match.courtId}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Please enter the final score and shuttlecocks used for the match.
+                        Please enter the final score for the match.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="space-y-4 py-4">
@@ -90,10 +98,6 @@ const EndMatchDialog = ({ match, onUpdateMatch, open, onOpenChange }: { match: M
                           <label htmlFor="scoreB" className="text-sm font-medium">Team B</label>
                           <Input id="scoreB" type="number" value={scoreB || ''} onChange={(e) => handleScoreChange(setScoreB, e.target.value)} className="w-20 text-center text-lg" />
                       </div>
-                  </div>
-                  <div className="flex items-center justify-center gap-2">
-                      <label htmlFor="shuttlecocks" className="text-sm font-medium">Shuttlecocks Used:</label>
-                      <Input id="shuttlecocks" type="number" value={shuttlecocksUsed} onChange={(e) => handleScoreChange(setShuttlecocksUsed, e.target.value)} className="w-20 text-center" />
                   </div>
                 </div>
                 <AlertDialogFooter>
@@ -153,14 +157,14 @@ const MatchTimer = ({ match }: { match: Match }) => {
 
 const ShuttlecockCounter = ({ match, onUpdateMatch }: { match: Match, onUpdateMatch: CourtCardProps['onUpdateMatch'] }) => {
   const handleUpdate = (increment: number) => {
-    const newCount = Math.max(0, match.shuttlecocksUsed + increment);
+    const newCount = Math.max(0, (match.shuttlecocksUsed || 0) + increment);
     onUpdateMatch(match.id, { shuttlecocksUsed: newCount });
   }
 
   return (
     <div className="flex items-center gap-2">
       <ShuttlecockIcon className="w-4 h-4" />
-      <span>{match.shuttlecocksUsed}</span>
+      <span>{match.shuttlecocksUsed || 0}</span>
       {match.status === 'in-progress' && (
         <div className="flex items-center gap-1">
           <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdate(-1)}>
