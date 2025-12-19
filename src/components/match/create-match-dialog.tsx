@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { generateBalancedMatch } from "@/app/actions";
 import type { Court, Player, Match } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Users, Loader2, Star, Shield, Dices, TriangleAlert } from "lucide-react";
+import { Info, Users, Loader2, Star, Shield, Dices, TriangleAlert, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type CreateMatchDialogProps = {
@@ -29,6 +29,43 @@ type CreateMatchDialogProps = {
   availablePlayers: Player[];
   onMatchCreate: (newMatch: Omit<Match, "id" | "status" | "scoreA" | "scoreB" | "shuttlecocksUsed">) => void;
 };
+
+
+const PlayerWaitTime = ({ player }: { player: Player }) => {
+    const [elapsedTime, setElapsedTime] = useState('0m');
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout | undefined;
+
+        if (player.status === 'available' && player.availableSince) {
+            const updateElapsedTime = () => {
+                const now = Date.now();
+                const seconds = Math.floor((now - (player.availableSince!)) / 1000);
+                const minutes = Math.floor(seconds / 60);
+                setElapsedTime(`${minutes}m`);
+            };
+
+            updateElapsedTime(); // Initial update
+            interval = setInterval(updateElapsedTime, 60000); // Update every minute
+        } else {
+            setElapsedTime('0m');
+        }
+
+        return () => {
+            if (interval) {
+                clearInterval(interval);
+            }
+        };
+    }, [player.status, player.availableSince]);
+
+    return (
+        <span className="flex items-center text-xs text-muted-foreground">
+            <Clock className="mr-1 h-3 w-3" />
+            {elapsedTime}
+        </span>
+    );
+};
+
 
 const PlayerSelectionList = ({
   title,
@@ -45,12 +82,19 @@ const PlayerSelectionList = ({
 }) => {
   const otherTeamIds = useMemo(() => new Set(otherTeamPlayers.map(p => p.id)), [otherTeamPlayers]);
 
+  // Sort players by matches played (asc) then by availableSince (asc)
+  const sortedPlayers = [...players].sort((a, b) => {
+    const matchesPlayedDiff = (a.matchesPlayed || 0) - (b.matchesPlayed || 0);
+    if (matchesPlayedDiff !== 0) return matchesPlayedDiff;
+    return (a.availableSince || 0) - (b.availableSince || 0);
+  });
+
   return (
     <div className="space-y-2">
       <h3 className="font-semibold text-center">{title}</h3>
       <ScrollArea className="h-48 rounded-md border p-4">
         <div className="space-y-2">
-          {players.map((player) => {
+          {sortedPlayers.map((player) => {
             const isSelected = !!selectedPlayers.find((p) => p.id === player.id);
             const isInOtherTeam = otherTeamIds.has(player.id);
             const isDisabled = (!isSelected && selectedPlayers.length >= 2) || isInOtherTeam;
@@ -65,9 +109,10 @@ const PlayerSelectionList = ({
                 />
                 <Label
                   htmlFor={`player-${title}-${player.id}`}
-                  className={cn("flex-1 cursor-pointer", isDisabled && "text-muted-foreground")}
+                  className={cn("flex-1 cursor-pointer flex justify-between items-center", isDisabled && "text-muted-foreground")}
                 >
-                  {player.name} (Skill: {player.skillLevel}, Played: {player.matchesPlayed || 0})
+                  <span>{player.name} (S: {player.skillLevel}, P: {player.matchesPlayed || 0})</span>
+                  <PlayerWaitTime player={player} />
                 </Label>
               </div>
             );
@@ -198,9 +243,9 @@ export function CreateMatchDialog({
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[70vh] pr-6">
-          <Tabs defaultValue="manual" className="w-full">
+          <Tabs defaultValue="random" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="random"><Dices className="mr-2 h-4 w-4"/>Random</TabsTrigger>
+              <TabsTrigger value="random"><Dices className="mr-2 h-4 w-4"/>Suggest</TabsTrigger>
               <TabsTrigger value="manual"><Users className="mr-2 h-4 w-4"/>Manual</TabsTrigger>
             </TabsList>
             
