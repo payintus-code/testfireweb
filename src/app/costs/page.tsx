@@ -33,6 +33,7 @@ type PlayerCost = {
   matchesPlayed: number;
   dailyFee: number;
   shuttlecockCost: number;
+  shuttlecocksUsed: number;
   totalCost: number;
 };
 
@@ -71,6 +72,7 @@ export default function CostsPage() {
             matchesPlayed: 0,
             dailyFee: 0,
             shuttlecockCost: 0,
+            shuttlecocksUsed: 0,
             totalCost: 0,
         });
     });
@@ -81,6 +83,7 @@ export default function CostsPage() {
       if (playersInMatch.length === 0) return;
       const totalShuttlecocks = match.shuttlecocksUsed || 0;
       const shuttlecockCostPerPlayer = (totalShuttlecocks * shuttlecockCost) / playersInMatch.length;
+      const shuttlecocksUsedPerPlayer = totalShuttlecocks / playersInMatch.length;
 
       playersInMatch.forEach((player) => {
         if (!playerCostsMap.has(player.id)) return;
@@ -89,6 +92,7 @@ export default function CostsPage() {
 
         currentCost.matchesPlayed += 1;
         currentCost.shuttlecockCost += shuttlecockCostPerPlayer;
+        currentCost.shuttlecocksUsed += shuttlecocksUsedPerPlayer;
         
         if (currentCost.dailyFee === 0) {
             currentCost.dailyFee = dailyFee;
@@ -203,6 +207,7 @@ export default function CostsPage() {
                   <TableHead className="text-center">Matches Played</TableHead>
                   <TableHead className="text-right">Daily Fee</TableHead>
                   <TableHead className="text-right">Shuttlecock Cost</TableHead>
+                  <TableHead className="text-center">Shuttles Used</TableHead>
                   <TableHead className="text-right font-bold">Total Cost</TableHead>
                 </TableRow>
               </TableHeader>
@@ -224,13 +229,14 @@ export default function CostsPage() {
                     <TableCell className="text-center">{cost.matchesPlayed}</TableCell>
                     <TableCell className="text-right">฿{cost.dailyFee.toFixed(2)}</TableCell>
                     <TableCell className="text-right">฿{cost.shuttlecockCost.toFixed(2)}</TableCell>
+                    <TableCell className="text-center">{cost.shuttlecocksUsed.toFixed(2)}</TableCell>
                     <TableCell className="text-right font-bold">฿{cost.totalCost.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
               <TableFooter>
                 <TableRow>
-                    <TableCell colSpan={4} className="text-right font-bold">Grand Total</TableCell>
+                    <TableCell colSpan={5} className="text-right font-bold">Grand Total</TableCell>
                     <TableCell className="text-right font-bold">฿{grandTotal.toFixed(2)}</TableCell>
                 </TableRow>
               </TableFooter>
