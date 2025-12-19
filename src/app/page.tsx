@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import CourtCard from "@/components/court-card";
 import type { Court, Match, Player } from "@/lib/types";
-import { COURTS, PLAYERS } from "@/lib/data";
+import { COURTS } from "@/lib/data";
 import { CreateMatchDialog } from "@/components/match/create-match-dialog";
 
 export default function Home() {
@@ -21,7 +21,7 @@ export default function Home() {
     if (storedPlayers) {
       setPlayers(JSON.parse(storedPlayers));
     } else {
-      setPlayers(PLAYERS.map(p => ({...p, availableSince: p.status === 'available' ? Date.now() : undefined, matchesPlayed: p.matchesPlayed || 0 })));
+      setPlayers([]);
     }
     
     setCourts(COURTS);
@@ -41,7 +41,7 @@ export default function Home() {
       
       setPlayers(prev => {
         const storedPlayers = localStorage.getItem("players");
-        const currentPlayers = storedPlayers ? JSON.parse(storedPlayers) : PLAYERS;
+        const currentPlayers = storedPlayers ? JSON.parse(storedPlayers) : [];
         return currentPlayers.map((p: Player) => ({
           ...p,
           matchesPlayed: p.matchesPlayed || 0,

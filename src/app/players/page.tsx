@@ -16,7 +16,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { Player } from "@/lib/types";
-import { PLAYERS } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 
 export default function PlayersPage() {
@@ -33,7 +32,7 @@ export default function PlayersPage() {
     if (storedPlayers) {
       setPlayers(JSON.parse(storedPlayers));
     } else {
-      setPlayers(PLAYERS.map(p => ({...p, matchesPlayed: p.matchesPlayed || 0})));
+      setPlayers([]);
     }
     setIsMounted(true);
   }, []);
