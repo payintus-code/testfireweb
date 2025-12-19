@@ -20,6 +20,7 @@ import type { Court, Player, Match } from "@/lib/types";
 import { Separator } from "../ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Users, Wand2, Loader2, Star, Shield, Dices, UserX } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type CreateMatchDialogProps = {
   isOpen: boolean;
