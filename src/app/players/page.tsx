@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { columns } from "@/components/player/player-columns";
 import { PlayerDataTable } from "@/components/player/player-data-table";
@@ -15,6 +16,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import type { Player } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,9 +40,14 @@ export default function PlayersPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // On mount, load players from localStorage
     const storedPlayers = localStorage.getItem("players");
     if (storedPlayers) {
-      setPlayers(JSON.parse(storedPlayers));
+      try {
+        setPlayers(JSON.parse(storedPlayers));
+      } catch (e) {
+        setPlayers([]);
+      }
     } else {
       setPlayers([]);
     }
@@ -106,6 +123,17 @@ export default function PlayersPage() {
     setPlayerForAvoidList(null);
   };
 
+  const handleClearAllPlayers = () => {
+    // Also clear matches as they are dependent on players
+    localStorage.removeItem("matches");
+    setPlayers([]);
+    toast({
+      title: "All Players Cleared",
+      description: "All player data has been removed.",
+      variant: "destructive",
+    });
+  }
+
   if (!isMounted) {
     return null;
   }
@@ -114,22 +142,46 @@ export default function PlayersPage() {
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Player Management</h1>
-        <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setFormOpen(isOpen); if (!isOpen) setEditingPlayer(undefined); }}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Player
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>{editingPlayer ? 'Edit Player' : 'Add New Player'}</DialogTitle>
-              <DialogDescription>
-                {editingPlayer ? "Update the player's details below." : "Enter the details for the new player."}
-              </DialogDescription>
-            </DialogHeader>
-            <PlayerForm onSubmit={handleFormSubmit} player={editingPlayer} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={players.length === 0}>
+                        <Trash2 className="mr-2 h-4 w-4" /> Clear All Players
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete all
+                            player data and match history from your local storage.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearAllPlayers}>
+                            Yes, delete everything
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setFormOpen(isOpen); if (!isOpen) setEditingPlayer(undefined); }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add Player
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>{editingPlayer ? 'Edit Player' : 'Add New Player'}</DialogTitle>
+                  <DialogDescription>
+                    {editingPlayer ? "Update the player's details below." : "Enter the details for the new player."}
+                  </DialogDescription>
+                </DialogHeader>
+                <PlayerForm onSubmit={handleFormSubmit} player={editingPlayer} />
+              </DialogContent>
+            </Dialog>
+        </div>
       </div>
       <PlayerDataTable columns={columns({ onEdit: handleEdit, onDelete: handleDelete, onManageAvoidList: handleManageAvoidList })} data={players} />
 
