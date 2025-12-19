@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
+import { Minus, Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -21,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
 import type { Player } from "@/lib/types"
 
 const formSchema = z.object({
@@ -113,15 +113,29 @@ export function PlayerForm({ onSubmit, player }: PlayerFormProps) {
           name="skillLevel"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Skill Level: {field.value}</FormLabel>
+              <FormLabel>Skill Level</FormLabel>
               <FormControl>
-                <Slider
-                  min={1}
-                  max={5}
-                  step={1}
-                  defaultValue={[field.value]}
-                  onValueChange={(value) => field.onChange(value[0])}
-                />
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={field.value <= 1}
+                    onClick={() => field.onChange(field.value - 1)}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <div className="text-center font-bold text-lg w-12">{field.value}</div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={field.value >= 5}
+                    onClick={() => field.onChange(field.value + 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
