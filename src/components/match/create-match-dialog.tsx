@@ -19,7 +19,7 @@ import { generateBalancedMatch } from "@/app/actions";
 import type { Court, Player, Match } from "@/lib/types";
 import { Separator } from "../ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Users, Wand2, Loader2, Star, Shield, Dices, UserX } from "lucide-react";
+import { Info, Users, Wand2, Loader2, Star, Shield, Dices, UserX, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type CreateMatchDialogProps = {
@@ -100,9 +100,9 @@ const AvoidanceWarnings = ({ teamA, teamB }: { teamA: Player[], teamB: Player[] 
     }
 
     return (
-        <Alert variant="destructive" className="mt-4">
-            <UserX className="h-4 w-4" />
-            <AlertTitle>Pairing Conflict</AlertTitle>
+        <Alert variant="default" className="mt-4 border-yellow-500/50 text-yellow-700 dark:border-yellow-500/50 [&>svg]:text-yellow-600 dark:text-yellow-400 dark:[&>svg]:text-yellow-400">
+            <TriangleAlert className="h-4 w-4" />
+            <AlertTitle className="text-yellow-700 dark:text-yellow-400">Pairing Warning</AlertTitle>
             <AlertDescription>
                 <ul className="list-disc pl-5">
                     {warnings.map((warning, index) => (
@@ -196,6 +196,21 @@ export function CreateMatchDialog({
   }
 
   const teamSkillLevel = (team: Player[]) => team.reduce((acc, p) => acc + p.skillLevel, 0);
+  
+  const hasAvoidanceConflict = useMemo(() => {
+    const allSelectedPlayers = [...teamA, ...teamB];
+    for (const player of allSelectedPlayers) {
+        const avoidIds = player.avoidPlayers || [];
+        if (avoidIds.length > 0) {
+            for (const otherPlayer of allSelectedPlayers) {
+                if (player.id !== otherPlayer.id && avoidIds.includes(otherPlayer.id)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+  }, [teamA, teamB]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { onOpenChange(open); if (!open) resetState(); }}>
@@ -206,7 +221,7 @@ export function CreateMatchDialog({
             Use random generation for a balanced match or assemble teams manually.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="random" className="w-full">
+        <Tabs defaultValue="manual" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="random"><Dices className="mr-2 h-4 w-4"/>Random</TabsTrigger>
             <TabsTrigger value="manual"><Users className="mr-2 h-4 w-4"/>Manual</TabsTrigger>
