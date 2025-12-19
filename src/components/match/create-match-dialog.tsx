@@ -19,7 +19,7 @@ import { generateBalancedMatch } from "@/app/actions";
 import type { Court, Player, Match } from "@/lib/types";
 import { Separator } from "../ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Users, Wand2, Loader2, Star, Shield, Dices } from "lucide-react";
+import { Info, Users, Wand2, Loader2, Star, Shield, Dices, UserX } from "lucide-react";
 
 type CreateMatchDialogProps = {
   isOpen: boolean;
@@ -29,6 +29,91 @@ type CreateMatchDialogProps = {
   onMatchCreate: (newMatch: Omit<Match, "id" | "status" | "scoreA" | "scoreB">) => void;
 };
 
+const PlayerSelectionList = ({
+  title,
+  players,
+  selectedPlayers,
+  onPlayerSelect,
+  otherTeamPlayers,
+}: {
+  title: string;
+  players: Player[];
+  selectedPlayers: Player[];
+  onPlayerSelect: (player: Player) => void;
+  otherTeamPlayers: Player[];
+}) => {
+  const otherTeamIds = useMemo(() => new Set(otherTeamPlayers.map(p => p.id)), [otherTeamPlayers]);
+
+  return (
+    <div className="space-y-2">
+      <h3 className="font-semibold text-center">{title}</h3>
+      <ScrollArea className="h-48 rounded-md border p-4">
+        <div className="space-y-2">
+          {players.map((player) => {
+            const isSelected = !!selectedPlayers.find((p) => p.id === player.id);
+            const isInOtherTeam = otherTeamIds.has(player.id);
+            const isDisabled = (!isSelected && selectedPlayers.length >= 2) || isInOtherTeam;
+
+            return (
+              <div key={player.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`player-${title}-${player.id}`}
+                  checked={isSelected || isInOtherTeam}
+                  onCheckedChange={() => onPlayerSelect(player)}
+                  disabled={isDisabled}
+                />
+                <Label
+                  htmlFor={`player-${title}-${player.id}`}
+                  className={cn("flex-1 cursor-pointer", isDisabled && "text-muted-foreground")}
+                >
+                  {player.name} (Skill: {player.skillLevel}, Played: {player.matchesPlayed || 0})
+                </Label>
+              </div>
+            );
+          })}
+        </div>
+      </ScrollArea>
+      <div className="text-sm text-muted-foreground text-center">Selected {selectedPlayers.length} of 2</div>
+    </div>
+  );
+};
+
+
+const AvoidanceWarnings = ({ teamA, teamB }: { teamA: Player[], teamB: Player[] }) => {
+    const warnings: string[] = [];
+    const allSelectedPlayers = [...teamA, ...teamB];
+
+    allSelectedPlayers.forEach(player => {
+        const avoidIds = player.avoidPlayers || [];
+        if (avoidIds.length > 0) {
+            allSelectedPlayers.forEach(otherPlayer => {
+                if (player.id !== otherPlayer.id && avoidIds.includes(otherPlayer.id)) {
+                    warnings.push(`${player.name} wants to avoid ${otherPlayer.name}.`);
+                }
+            });
+        }
+    });
+
+    if (warnings.length === 0) {
+        return null;
+    }
+
+    return (
+        <Alert variant="destructive" className="mt-4">
+            <UserX className="h-4 w-4" />
+            <AlertTitle>Pairing Conflict</AlertTitle>
+            <AlertDescription>
+                <ul className="list-disc pl-5">
+                    {warnings.map((warning, index) => (
+                        <li key={index}>{warning}</li>
+                    ))}
+                </ul>
+            </AlertDescription>
+        </Alert>
+    );
+};
+
+
 export function CreateMatchDialog({
   isOpen,
   onOpenChange,
@@ -36,13 +121,16 @@ export function CreateMatchDialog({
   availablePlayers,
   onMatchCreate,
 }: CreateMatchDialogProps) {
-  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
+  const [teamA, setTeamA] = useState<Player[]>([]);
+  const [teamB, setTeamB] = useState<Player[]>([]);
   const [generatedMatch, setGeneratedMatch] = useState<{ teamA: Player[], teamB: Player[], explanation: string } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
-  const handlePlayerSelect = (player: Player) => {
-    setSelectedPlayers((prev) =>
+  const handlePlayerSelect = (player: Player, team: 'A' | 'B') => {
+    const [setter, currentTeam] = team === 'A' ? [setTeamA, teamA] : [setTeamB, teamB];
+    
+    setter((prev) =>
       prev.find((p) => p.id === player.id)
         ? prev.filter((p) => p.id !== player.id)
         : [...prev, player]
@@ -50,16 +138,14 @@ export function CreateMatchDialog({
   };
   
   const handleManualCreate = () => {
-    if (selectedPlayers.length !== 4) {
+    if (teamA.length !== 2 || teamB.length !== 2) {
       toast({
         title: "Invalid Selection",
-        description: "Please select exactly 4 players for a match.",
+        description: "Please select exactly 2 players for each team.",
         variant: "destructive",
       });
       return;
     }
-    const teamA = [selectedPlayers[0], selectedPlayers[1]];
-    const teamB = [selectedPlayers[2], selectedPlayers[3]];
     onMatchCreate({ courtId: court.id, teamA, teamB });
     resetState();
   };
@@ -103,7 +189,8 @@ export function CreateMatchDialog({
   };
 
   const resetState = () => {
-    setSelectedPlayers([]);
+    setTeamA([]);
+    setTeamB([]);
     setGeneratedMatch(null);
   }
 
@@ -111,7 +198,7 @@ export function CreateMatchDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { onOpenChange(open); if (!open) resetState(); }}>
-      <DialogContent className="sm:max-w-md md:sm:max-w-2xl">
+      <DialogContent className="sm:max-w-md md:sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Create Match on {court.name}</DialogTitle>
           <DialogDescription>
@@ -166,37 +253,27 @@ export function CreateMatchDialog({
 
           <TabsContent value="manual" className="mt-4">
             <div className="space-y-4">
-              <div>
-                <Label>Select 4 Players</Label>
-                <p className="text-sm text-muted-foreground">
-                  Selected {selectedPlayers.length} of 4 players. The first two selected will be Team A, the next two will be Team B.
-                </p>
-              </div>
-              <ScrollArea className="h-64 rounded-md border p-4">
-                <div className="space-y-2">
-                  {availablePlayers.map((player) => (
-                    <div key={player.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`player-${player.id}`}
-                        checked={!!selectedPlayers.find((p) => p.id === player.id)}
-                        onCheckedChange={() => handlePlayerSelect(player)}
-                        disabled={
-                          selectedPlayers.length >= 4 &&
-                          !selectedPlayers.find((p) => p.id === player.id)
-                        }
-                      />
-                      <Label
-                        htmlFor={`player-${player.id}`}
-                        className="flex-1 cursor-pointer"
-                      >
-                        {player.name} (Skill: {player.skillLevel}, Played: {player.matchesPlayed || 0})
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <PlayerSelectionList 
+                    title="Team A"
+                    players={availablePlayers}
+                    selectedPlayers={teamA}
+                    onPlayerSelect={(player) => handlePlayerSelect(player, 'A')}
+                    otherTeamPlayers={teamB}
+                 />
+                 <PlayerSelectionList 
+                    title="Team B"
+                    players={availablePlayers}
+                    selectedPlayers={teamB}
+                    onPlayerSelect={(player) => handlePlayerSelect(player, 'B')}
+                    otherTeamPlayers={teamA}
+                 />
+               </div>
+               
+               <AvoidanceWarnings teamA={teamA} teamB={teamB} />
+
               <DialogFooter>
-                  <Button onClick={handleManualCreate} disabled={selectedPlayers.length !== 4}>Schedule Match</Button>
+                  <Button onClick={handleManualCreate} disabled={teamA.length !== 2 || teamB.length !== 2}>Schedule Match</Button>
               </DialogFooter>
             </div>
           </TabsContent>
