@@ -78,6 +78,7 @@ export default function CostsPage() {
 
     completedMatches.forEach((match) => {
       const playersInMatch = [...match.teamA, ...match.teamB];
+      if (playersInMatch.length === 0) return;
       const totalShuttlecocks = match.shuttlecocksUsed || 0;
       const shuttlecockCostPerPlayer = (totalShuttlecocks * shuttlecockCost) / playersInMatch.length;
 
@@ -111,7 +112,7 @@ export default function CostsPage() {
   }, [completedMatches]);
 
   const totalShuttlecockCost = totalShuttlecocksUsed * shuttlecockCost;
-  const totalDailyFees = playerCosts.length * dailyFee;
+  const totalDailyFees = playerCosts.filter(p => p.dailyFee > 0).length * dailyFee;
   const grandTotal = totalDailyFees + totalShuttlecockCost;
 
   if (!isMounted) {
@@ -126,7 +127,7 @@ export default function CostsPage() {
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <h1 className="text-3xl font-bold mb-6">Cost Summary</h1>
-      <div className="grid gap-6 md:grid-cols-2 mb-6">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Grand Total</CardTitle>
@@ -144,7 +145,7 @@ export default function CostsPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">฿{totalDailyFees.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">{playerCosts.length} players x ฿{dailyFee}</p>
+                <p className="text-xs text-muted-foreground">{playerCosts.filter(p => p.dailyFee > 0).length} players x ฿{dailyFee}</p>
             </CardContent>
         </Card>
          <Card>
@@ -248,3 +249,5 @@ export default function CostsPage() {
     </div>
   );
 }
+
+    
