@@ -42,7 +42,7 @@ export default function CostsPage() {
   const [completedMatches, setCompletedMatches] = useState<Match[]>([]);
   const [isMounted, setIsMounted] = useState(false);
   const [dailyFee, setDailyFee] = useState(70);
-  const [shuttlecockCost, setShuttlecockCost] = useState(100);
+  const [shuttlecockFeePerPerson, setShuttlecockFeePerPerson] = useState(25);
 
 
   useEffect(() => {
@@ -93,12 +93,11 @@ export default function CostsPage() {
           const playersInMatch = [...match.teamA, ...match.teamB];
           const totalShuttlecocksInMatch = match.shuttlecocksUsed || 0;
           
-          if (playersInMatch.length > 0) {
-            const costPerPlayerForThisMatch = (totalShuttlecocksInMatch * shuttlecockCost) / playersInMatch.length;
-            const usagePerPlayerForThisMatch = totalShuttlecocksInMatch / playersInMatch.length;
-
-            currentCost.shuttlecockCost += costPerPlayerForThisMatch;
-            currentCost.shuttlecocksUsed += usagePerPlayerForThisMatch;
+          if (playersInMatch.some(p => p.id === player.id)) {
+            const costForThisMatch = (totalShuttlecocksInMatch / playersInMatch.length) * shuttlecockFeePerPerson * playersInMatch.length / 4;
+            const usageForThisMatch = totalShuttlecocksInMatch / playersInMatch.length;
+            currentCost.shuttlecockCost += costForThisMatch;
+            currentCost.shuttlecocksUsed += usageForThisMatch;
           }
         });
       }
@@ -113,11 +112,11 @@ export default function CostsPage() {
   
     return costs.sort((a, b) => b.totalCost - a.totalCost);
   
-  }, [completedMatches, players, dailyFee, shuttlecockCost]);
+  }, [completedMatches, players, dailyFee, shuttlecockFeePerPerson]);
 
   const totalShuttlecocksUsed = useMemo(() => {
-    return completedMatches.reduce((acc, match) => acc + (match.shuttlecocksUsed || 0), 0);
-  }, [completedMatches]);
+    return playerCosts.reduce((acc, cost) => acc + cost.shuttlecocksUsed, 0);
+  }, [playerCosts]);
 
   const totalShuttlecockCost = playerCosts.reduce((acc, cost) => acc + cost.shuttlecockCost, 0);
   const totalDailyFees = playerCosts.filter(p => p.dailyFee > 0).length * dailyFee;
@@ -163,7 +162,7 @@ export default function CostsPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">฿{totalShuttlecockCost.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">{totalShuttlecocksUsed.toFixed(2)} shuttles x ฿{shuttlecockCost}</p>
+                <p className="text-xs text-muted-foreground">{totalShuttlecocksUsed.toFixed(2)} shuttles used</p>
             </CardContent>
         </Card>
       </div>
@@ -184,13 +183,13 @@ export default function CostsPage() {
                 />
             </div>
              <div className="space-y-2">
-                <Label htmlFor="shuttle-cost">Shuttlecock Cost (฿ per tube)</Label>
+                <Label htmlFor="shuttle-cost">Shuttlecock Cost (฿ per person/match)</Label>
                 <Input 
                     id="shuttle-cost"
                     type="number"
-                    value={shuttlecockCost}
-                    onChange={(e) => setShuttlecockCost(Number(e.target.value))}
-                    placeholder="e.g. 100"
+                    value={shuttlecockFeePerPerson}
+                    onChange={(e) => setShuttlecockFeePerPerson(Number(e.target.value))}
+                    placeholder="e.g. 25"
                 />
             </div>
         </CardContent>
@@ -259,5 +258,3 @@ export default function CostsPage() {
     </div>
   );
 }
-
-    
