@@ -252,7 +252,7 @@ export function CreateMatchDialog({
             <TabsContent value="random" className="mt-4">
               <div className="space-y-4 text-center">
                   <p className="text-sm text-muted-foreground">
-                      Let us suggest a balanced match based on player skill levels.
+                      Let us suggest a balanced match based on player skill and wait time.
                   </p>
                   <Button onClick={handleRandomGenerate} disabled={isGenerating || availablePlayers.length < 4}>
                       {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -281,6 +281,7 @@ export function CreateMatchDialog({
                                   {generatedMatch.explanation}
                               </AlertDescription>
                           </Alert>
+                           <AvoidanceWarnings teamA={generatedMatch.teamA} teamB={generatedMatch.teamB} />
                           <DialogFooter className="mt-4">
                               <Button onClick={handleGeneratedCreate}>Schedule This Match</Button>
                           </DialogFooter>
