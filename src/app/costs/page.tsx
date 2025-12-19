@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -18,12 +19,12 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
-import { DollarSign, Users } from "lucide-react";
+import { DollarSign, Users, Settings } from "lucide-react";
 import Image from "next/image";
 import { ShuttlecockIcon } from "@/components/icons/shuttlecock-icon";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-const DAILY_FEE = 70;
-const SHUTTLECOCK_COST = 25;
 
 type PlayerCost = {
   playerId: string;
@@ -39,6 +40,9 @@ export default function CostsPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [completedMatches, setCompletedMatches] = useState<Match[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const [dailyFee, setDailyFee] = useState(70);
+  const [shuttlecockCost, setShuttlecockCost] = useState(25);
+
 
   useEffect(() => {
     const storedPlayers = localStorage.getItem("players");
@@ -75,7 +79,7 @@ export default function CostsPage() {
     completedMatches.forEach((match) => {
       const playersInMatch = [...match.teamA, ...match.teamB];
       const totalShuttlecocks = match.shuttlecocksUsed || 0;
-      const shuttlecockCostPerPlayer = (totalShuttlecocks * SHUTTLECOCK_COST) / playersInMatch.length;
+      const shuttlecockCostPerPlayer = (totalShuttlecocks * shuttlecockCost) / playersInMatch.length;
 
       playersInMatch.forEach((player) => {
         if (!playerCostsMap.has(player.id)) return;
@@ -86,7 +90,7 @@ export default function CostsPage() {
         currentCost.shuttlecockCost += shuttlecockCostPerPlayer;
         
         if (currentCost.dailyFee === 0) {
-            currentCost.dailyFee = DAILY_FEE;
+            currentCost.dailyFee = dailyFee;
         }
       });
     });
@@ -100,14 +104,14 @@ export default function CostsPage() {
         
     return costs.sort((a,b) => b.totalCost - a.totalCost);
 
-  }, [completedMatches, players]);
+  }, [completedMatches, players, dailyFee, shuttlecockCost]);
 
   const totalShuttlecocksUsed = useMemo(() => {
     return completedMatches.reduce((acc, match) => acc + (match.shuttlecocksUsed || 0), 0);
   }, [completedMatches]);
 
-  const totalShuttlecockCost = totalShuttlecocksUsed * SHUTTLECOCK_COST;
-  const totalDailyFees = playerCosts.length * DAILY_FEE;
+  const totalShuttlecockCost = totalShuttlecocksUsed * shuttlecockCost;
+  const totalDailyFees = playerCosts.length * dailyFee;
   const grandTotal = totalDailyFees + totalShuttlecockCost;
 
   if (!isMounted) {
@@ -140,7 +144,7 @@ export default function CostsPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">฿{totalDailyFees.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">{playerCosts.length} players x ฿{DAILY_FEE}</p>
+                <p className="text-xs text-muted-foreground">{playerCosts.length} players x ฿{dailyFee}</p>
             </CardContent>
         </Card>
          <Card>
@@ -150,10 +154,38 @@ export default function CostsPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">฿{totalShuttlecockCost.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">{totalShuttlecocksUsed} shuttles x ฿{SHUTTLECOCK_COST}</p>
+                <p className="text-xs text-muted-foreground">{totalShuttlecocksUsed} shuttles x ฿{shuttlecockCost}</p>
             </CardContent>
         </Card>
       </div>
+      <Card className="mb-6">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5"/>Cost Configuration</CardTitle>
+            <CardDescription>Adjust the fees used for cost calculation.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label htmlFor="daily-fee">Daily Fee (฿)</Label>
+                <Input 
+                    id="daily-fee"
+                    type="number"
+                    value={dailyFee}
+                    onChange={(e) => setDailyFee(Number(e.target.value))}
+                    placeholder="e.g. 70"
+                />
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="shuttle-cost">Shuttlecock Cost (฿)</Label>
+                <Input 
+                    id="shuttle-cost"
+                    type="number"
+                    value={shuttlecockCost}
+                    onChange={(e) => setShuttlecockCost(Number(e.target.value))}
+                    placeholder="e.g. 25"
+                />
+            </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Player Cost Breakdown</CardTitle>
