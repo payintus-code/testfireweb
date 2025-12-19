@@ -2,6 +2,7 @@
 "use server";
 
 import type { Player } from "@/lib/types";
+import { suggestMatchPairing, type SuggestMatchPairingInput } from "@/ai/ai-suggested-match-pairing";
 
 
 /**
@@ -18,61 +19,25 @@ export async function generateBalancedMatch(
   if (availablePlayers.length < 4) {
     throw new Error("Not enough players to generate a match.");
   }
-
-  // Sort players to prioritize those with fewer matches and longer wait times
-  const sortedPlayers = [...availablePlayers].sort((a, b) => {
-    // Players with fewer matches have higher priority
-    const matchesPlayedDiff = (a.matchesPlayed || 0) - (b.matchesPlayed || 0);
-    if (matchesPlayedDiff !== 0) {
-      return matchesPlayedDiff;
-    }
-    // For players with the same number of matches, prioritize who has been waiting longer
-    // A smaller 'availableSince' timestamp means they have been waiting longer
-    return (a.availableSince || 0) - (b.availableSince || 0);
-  });
   
-  // Select the top 4 prioritized players
-  const selectedPlayers = sortedPlayers.slice(0, 4);
+  const aiInput: SuggestMatchPairingInput = {
+    availablePlayers,
+    previousMatches: [], // Note: previousMatches is not implemented yet
+  };
 
-  // Find the best pairing out of the 3 possible combinations for 4 players
-  const [p1, p2, p3, p4] = selectedPlayers.sort((a, b) => a.skillLevel - b.skillLevel);
+  const aiResult = await suggestMatchPairing(aiInput);
 
-  const pairings = [
-    { teamA: [p1, p4], teamB: [p2, p3] }, // 1st + 4th vs 2nd + 3rd
-    { teamA: [p1, p3], teamB: [p2, p4] }, // 1st + 3rd vs 2nd + 4th
-    { teamA: [p1, p2], teamB: [p3, p4] }, // 1st + 2nd vs 3rd + 4th
-  ];
+  // The AI can sometimes return players that are not in the available list.
+  // We need to find the corresponding player object from the original availablePlayers list.
+  const findOriginalPlayer = (player: Player) => 
+    availablePlayers.find(p => p.name === player.name)!;
 
-  let bestPairing = null;
-  let minDiff = Infinity;
-
-  for (const pairing of pairings) {
-    const teamASkill = pairing.teamA.reduce((sum, p) => sum + p.skillLevel, 0);
-    const teamBSkill = pairing.teamB.reduce((sum, p) => sum + p.skillLevel, 0);
-    const diff = Math.abs(teamASkill - teamBSkill);
-
-    if (diff < minDiff) {
-      minDiff = diff;
-      bestPairing = pairing;
-    }
-  }
-
-  // With this logic, bestPairing will always be assigned if there are 4 players.
-  // The error for not finding a balanced match is removed.
-  if (!bestPairing) {
-    // This should not happen if pairings array is not empty.
-    throw new Error("Could not determine any pairings. Please select manually.");
-  }
-
-  const { teamA, teamB } = bestPairing;
-  const teamASkill = teamA.reduce((sum, p) => sum + p.skillLevel, 0);
-  const teamBSkill = teamB.reduce((sum, p) => sum + p.skillLevel, 0);
-
-  const explanation = `Teams were created by prioritizing players with fewer games and longer wait times, then finding the most balanced skill pairing. Team A has a combined skill of ${teamASkill} and Team B has ${teamBSkill}.`;
+  const teamA = aiResult.team1.players.map(findOriginalPlayer);
+  const teamB = aiResult.team2.players.map(findOriginalPlayer);
 
   return {
     teamA,
     teamB,
-    explanation
+    explanation: aiResult.explanation,
   };
 }

@@ -56,7 +56,7 @@ const suggestMatchPairingPrompt = ai.definePrompt({
 
 You will receive a list of available players with their skill levels, ages and genders, and a list of previous matches played today.
 
-Your goal is to create two teams of two players each, ensuring the teams are as balanced as possible in terms of skill level and that no more than 2 players repeat from previous matches on the same day.
+Your goal is to create two teams of two players each, ensuring the teams are as balanced as possible in terms of skill level. The difference between the two teams' combined skill levels should be minimized, ideally 0 or 1. You should choose from ALL available players to find the most balanced match.
 
 Available Players:
 {{#each availablePlayers}}
