@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { DollarSign, Users } from "lucide-react";
 import Image from "next/image";
+import { ShuttlecockIcon } from "@/components/icons/shuttlecock-icon";
 
 const DAILY_FEE = 70;
 const SHUTTLECOCK_COST = 25;
