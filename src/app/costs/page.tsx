@@ -63,52 +63,52 @@ export default function CostsPage() {
   
     const playerCostsMap = new Map<string, PlayerCost>();
   
-    // Initialize map for all players in the system
+    // Initialize map for all players who have played at least one match
     players.forEach(p => {
-      playerCostsMap.set(p.id, {
-        playerId: p.id,
-        playerName: p.name,
-        playerAvatar: p.avatarUrl,
-        matchesPlayed: 0,
-        dailyFee: 0,
-        shuttlecockCost: 0,
-        shuttlecocksUsed: 0,
-        totalCost: 0,
-      });
+        const playerMatches = completedMatches.filter(match => 
+            match.teamA.some(player => player.id === p.id) || match.teamB.some(player => player.id === p.id)
+        );
+        if (playerMatches.length > 0) {
+            playerCostsMap.set(p.id, {
+                playerId: p.id,
+                playerName: p.name,
+                playerAvatar: p.avatarUrl,
+                matchesPlayed: playerMatches.length,
+                dailyFee: dailyFee,
+                shuttlecockCost: 0,
+                shuttlecocksUsed: 0,
+                totalCost: 0,
+            });
+        }
     });
   
-    // Iterate through each player to calculate their individual costs
-    players.forEach(player => {
-      const playerMatches = completedMatches.filter(match => 
-        match.teamA.some(p => p.id === player.id) || match.teamB.some(p => p.id === player.id)
-      );
-  
-      if (playerMatches.length > 0) {
-        const currentCost = playerCostsMap.get(player.id)!;
+    // Iterate through each completed match to aggregate costs
+    completedMatches.forEach(match => {
+        const playersInMatch = [...match.teamA, ...match.teamB];
+        const shuttlecocksUsedInMatch = match.shuttlecocksUsed || 0;
         
-        currentCost.matchesPlayed = playerMatches.length;
-        currentCost.dailyFee = dailyFee;
-  
-        playerMatches.forEach(match => {
-          const playersInMatch = [...match.teamA, ...match.teamB];
-          const totalShuttlecocksInMatch = match.shuttlecocksUsed || 0;
-          
-          if (playersInMatch.some(p => p.id === player.id)) {
-            const costForThisMatch = (totalShuttlecocksInMatch / playersInMatch.length) * shuttlecockFeePerPerson * playersInMatch.length / 4;
-            const usageForThisMatch = totalShuttlecocksInMatch / playersInMatch.length;
-            currentCost.shuttlecockCost += costForThisMatch;
-            currentCost.shuttlecocksUsed += usageForThisMatch;
-          }
+        // This is the cost per player for this specific match
+        const costPerPlayerForThisMatch = (shuttlecocksUsedInMatch / playersInMatch.length) * shuttlecockFeePerPerson;
+        
+        playersInMatch.forEach(player => {
+            if (playerCostsMap.has(player.id)) {
+                const currentCost = playerCostsMap.get(player.id)!;
+                // Accumulate the number of shuttles used per player based on their share in each match
+                currentCost.shuttlecocksUsed += shuttlecocksUsedInMatch / playersInMatch.length;
+            }
         });
+    });
+  
+    // Final calculation for total cost
+    const costs = Array.from(playerCostsMap.values()).map(cost => {
+      // Calculate total shuttlecock cost based on the accumulated usage
+      const totalShuttlecockCostForPlayer = cost.shuttlecocksUsed * shuttlecockFeePerPerson;
+      return {
+        ...cost,
+        shuttlecockCost: totalShuttlecockCostForPlayer,
+        totalCost: cost.dailyFee + totalShuttlecockCostForPlayer,
       }
     });
-  
-    const costs = Array.from(playerCostsMap.values())
-      .map(cost => ({
-        ...cost,
-        totalCost: cost.dailyFee + cost.shuttlecockCost,
-      }))
-      .filter(cost => cost.matchesPlayed > 0);
   
     return costs.sort((a, b) => b.totalCost - a.totalCost);
   
@@ -258,3 +258,5 @@ export default function CostsPage() {
     </div>
   );
 }
+
+    
