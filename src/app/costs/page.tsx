@@ -60,62 +60,66 @@ export default function CostsPage() {
 
   const playerCosts = useMemo((): PlayerCost[] => {
     if (completedMatches.length === 0) return [];
-
+  
     const playerCostsMap = new Map<string, PlayerCost>();
-    
+  
     // Initialize map for all players in the system
-     players.forEach(p => {
-        playerCostsMap.set(p.id, {
-            playerId: p.id,
-            playerName: p.name,
-            playerAvatar: p.avatarUrl,
-            matchesPlayed: 0,
-            dailyFee: 0,
-            shuttlecockCost: 0,
-            shuttlecocksUsed: 0,
-            totalCost: 0,
-        });
-    });
-
-
-    completedMatches.forEach((match) => {
-      const playersInMatch = [...match.teamA, ...match.teamB];
-      if (playersInMatch.length === 0) return;
-      const totalShuttlecocks = match.shuttlecocksUsed || 0;
-      const shuttlecockCostPerPlayer = (totalShuttlecocks * shuttlecockCost) / playersInMatch.length;
-      const shuttlecocksUsedPerPlayer = totalShuttlecocks / playersInMatch.length;
-
-      playersInMatch.forEach((player) => {
-        if (!playerCostsMap.has(player.id)) return;
-
-        const currentCost = playerCostsMap.get(player.id)!;
-
-        currentCost.matchesPlayed += 1;
-        currentCost.shuttlecockCost += shuttlecockCostPerPlayer;
-        currentCost.shuttlecocksUsed += shuttlecocksUsedPerPlayer;
-        
-        if (currentCost.dailyFee === 0) {
-            currentCost.dailyFee = dailyFee;
-        }
+    players.forEach(p => {
+      playerCostsMap.set(p.id, {
+        playerId: p.id,
+        playerName: p.name,
+        playerAvatar: p.avatarUrl,
+        matchesPlayed: 0,
+        dailyFee: 0,
+        shuttlecockCost: 0,
+        shuttlecocksUsed: 0,
+        totalCost: 0,
       });
     });
-
-    const costs = Array.from(playerCostsMap.values())
-        .map(cost => ({
-            ...cost,
-            totalCost: cost.dailyFee + cost.shuttlecockCost,
-        }))
-        .filter(cost => cost.matchesPlayed > 0);
+  
+    // Iterate through each player to calculate their individual costs
+    players.forEach(player => {
+      const playerMatches = completedMatches.filter(match => 
+        match.teamA.some(p => p.id === player.id) || match.teamB.some(p => p.id === player.id)
+      );
+  
+      if (playerMatches.length > 0) {
+        const currentCost = playerCostsMap.get(player.id)!;
         
-    return costs.sort((a,b) => b.totalCost - a.totalCost);
+        currentCost.matchesPlayed = playerMatches.length;
+        currentCost.dailyFee = dailyFee;
+  
+        playerMatches.forEach(match => {
+          const playersInMatch = [...match.teamA, ...match.teamB];
+          const totalShuttlecocksInMatch = match.shuttlecocksUsed || 0;
+          
+          if (playersInMatch.length > 0) {
+            const costPerPlayerForThisMatch = (totalShuttlecocksInMatch * shuttlecockCost) / playersInMatch.length;
+            const usagePerPlayerForThisMatch = totalShuttlecocksInMatch / playersInMatch.length;
 
+            currentCost.shuttlecockCost += costPerPlayerForThisMatch;
+            currentCost.shuttlecocksUsed += usagePerPlayerForThisMatch;
+          }
+        });
+      }
+    });
+  
+    const costs = Array.from(playerCostsMap.values())
+      .map(cost => ({
+        ...cost,
+        totalCost: cost.dailyFee + cost.shuttlecockCost,
+      }))
+      .filter(cost => cost.matchesPlayed > 0);
+  
+    return costs.sort((a, b) => b.totalCost - a.totalCost);
+  
   }, [completedMatches, players, dailyFee, shuttlecockCost]);
 
   const totalShuttlecocksUsed = useMemo(() => {
     return completedMatches.reduce((acc, match) => acc + (match.shuttlecocksUsed || 0), 0);
   }, [completedMatches]);
 
-  const totalShuttlecockCost = totalShuttlecocksUsed * shuttlecockCost;
+  const totalShuttlecockCost = playerCosts.reduce((acc, cost) => acc + cost.shuttlecockCost, 0);
   const totalDailyFees = playerCosts.filter(p => p.dailyFee > 0).length * dailyFee;
   const grandTotal = totalDailyFees + totalShuttlecockCost;
 
@@ -159,7 +163,7 @@ export default function CostsPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">฿{totalShuttlecockCost.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">{totalShuttlecocksUsed} shuttles x ฿{shuttlecockCost}</p>
+                <p className="text-xs text-muted-foreground">{totalShuttlecocksUsed.toFixed(2)} shuttles x ฿{shuttlecockCost}</p>
             </CardContent>
         </Card>
       </div>
@@ -180,13 +184,13 @@ export default function CostsPage() {
                 />
             </div>
              <div className="space-y-2">
-                <Label htmlFor="shuttle-cost">Shuttlecock Cost (฿)</Label>
+                <Label htmlFor="shuttle-cost">Shuttlecock Cost (฿ per tube)</Label>
                 <Input 
                     id="shuttle-cost"
                     type="number"
                     value={shuttlecockCost}
                     onChange={(e) => setShuttlecockCost(Number(e.target.value))}
-                    placeholder="e.g. 25"
+                    placeholder="e.g. 100"
                 />
             </div>
         </CardContent>
