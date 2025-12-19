@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import CourtCard from "@/components/court-card";
 import type { Court, Match, Player } from "@/lib/types";
-import { COURTS } from "@/lib/data";
+import { COURTS as DEFAULT_COURTS } from "@/lib/data";
 import { CreateMatchDialog } from "@/components/match/create-match-dialog";
 
 export default function Home() {
@@ -16,15 +16,19 @@ export default function Home() {
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
 
   useEffect(() => {
-    // Load initial data from localStorage if available
+    const storedCourts = localStorage.getItem("courts");
+    if (storedCourts) {
+      setCourts(JSON.parse(storedCourts));
+    } else {
+      setCourts(DEFAULT_COURTS);
+    }
+    
     const storedPlayers = localStorage.getItem("players");
     if (storedPlayers) {
       setPlayers(JSON.parse(storedPlayers));
     } else {
       setPlayers([]);
     }
-    
-    setCourts(COURTS);
     
     const storedMatches = localStorage.getItem("matches");
     if (storedMatches) {
@@ -34,14 +38,18 @@ export default function Home() {
       // Restore court and player states based on loaded matches
       const playersInMatches = new Set(parsedMatches.flatMap(m => m.status !== 'completed' && m.status !== 'cancelled' ? [...m.teamA, ...m.teamB].map(p => p.id) : []));
       
-      setCourts(prev => prev.map(c => {
-        const matchOnCourt = parsedMatches.find(m => m.courtId === c.id && m.status !== 'completed' && m.status !== 'cancelled');
-        return { ...c, matchId: matchOnCourt ? matchOnCourt.id : null };
-      }));
+      setCourts(prev => {
+         const storedC = localStorage.getItem("courts");
+         const currentCourts = storedC ? JSON.parse(storedC) : DEFAULT_COURTS;
+         return currentCourts.map((c: Court) => {
+            const matchOnCourt = parsedMatches.find(m => m.courtId === c.id && m.status !== 'completed' && m.status !== 'cancelled');
+            return { ...c, matchId: matchOnCourt ? matchOnCourt.id : null };
+         });
+      });
       
       setPlayers(prev => {
-        const storedPlayers = localStorage.getItem("players");
-        const currentPlayers = storedPlayers ? JSON.parse(storedPlayers) : [];
+        const storedP = localStorage.getItem("players");
+        const currentPlayers = storedP ? JSON.parse(storedP) : [];
         if (!currentPlayers || currentPlayers.length === 0) return [];
         return currentPlayers.map((p: Player) => ({
           ...p,
@@ -58,13 +66,28 @@ export default function Home() {
     setIsMounted(true);
   }, []);
 
-  // Persist matches and players to localStorage whenever they change
+  // Persist matches, players, and courts to localStorage whenever they change
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem("matches", JSON.stringify(matches));
+      
+      // Update court matchId based on matches
+      const updatedCourts = courts.map(c => {
+         const matchOnCourt = matches.find(m => m.courtId === c.id && m.status !== 'completed' && m.status !== 'cancelled');
+         return { ...c, matchId: matchOnCourt ? matchOnCourt.id : null };
+      });
+      // Do not save the matchId to localStorage for courts to avoid stale data.
+      // We only want to save the core court info (id, name).
+      const courtsToStore = updatedCourts.map(({ id, name }) => ({ id, name }));
+      localStorage.setItem("courts", JSON.stringify(courtsToStore));
+    }
+  }, [matches, isMounted, courts]);
+  
+  useEffect(() => {
+    if (isMounted) {
       localStorage.setItem("players", JSON.stringify(players));
     }
-  }, [matches, players, isMounted]);
+  }, [players, isMounted]);
 
   const handleCreateMatchClick = (court: Court) => {
     setSelectedCourt(court);

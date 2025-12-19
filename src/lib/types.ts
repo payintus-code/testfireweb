@@ -27,5 +27,5 @@ export type Match = {
 export type Court = {
   id: number;
   name: string;
-  matchId: string | null;
+  matchId?: string | null;
 };

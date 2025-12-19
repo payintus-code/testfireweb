@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, UsersRound, Menu, Trophy, DollarSign } from "lucide-react";
+import { LayoutGrid, UsersRound, Menu, Trophy, DollarSign, Sprout } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -12,6 +12,7 @@ import { ShuttlecockIcon } from "./icons/shuttlecock-icon";
 const navLinks = [
   { href: "/", label: "Dashboard", icon: LayoutGrid },
   { href: "/players", label: "Players", icon: UsersRound },
+  { href: "/courts", label: "Courts", icon: Sprout },
   { href: "/summary", label: "Summary", icon: Trophy },
   { href: "/costs", label: "Costs", icon: DollarSign },
 ];
