@@ -42,7 +42,7 @@ export default function CostsPage() {
   const [completedMatches, setCompletedMatches] = useState<Match[]>([]);
   const [isMounted, setIsMounted] = useState(false);
   const [dailyFee, setDailyFee] = useState(70);
-  const [shuttlecockFeePerPerson, setShuttlecockFeePerPerson] = useState(25);
+  const [costPerShuttle, setCostPerShuttle] = useState(25);
 
 
   useEffect(() => {
@@ -97,8 +97,8 @@ export default function CostsPage() {
 
     // Final calculation for total cost
     const costs = Array.from(playerCostsMap.values()).map(cost => {
-      // Shuttlecock cost is matches played * fee per person per match
-      const totalShuttlecockCostForPlayer = cost.matchesPlayed * shuttlecockFeePerPerson;
+      // Shuttlecock cost is shuttles used * cost per shuttle
+      const totalShuttlecockCostForPlayer = cost.shuttlecocksUsed * costPerShuttle;
       return {
         ...cost,
         shuttlecockCost: totalShuttlecockCostForPlayer,
@@ -108,7 +108,7 @@ export default function CostsPage() {
 
     return costs.sort((a, b) => b.totalCost - a.totalCost);
 
-  }, [completedMatches, players, dailyFee, shuttlecockFeePerPerson]);
+  }, [completedMatches, players, dailyFee, costPerShuttle]);
 
   const totalShuttlecocksUsed = useMemo(() => {
     return completedMatches.reduce((acc, match) => acc + (match.shuttlecocksUsed || 0), 0);
@@ -179,12 +179,12 @@ export default function CostsPage() {
                 />
             </div>
              <div className="space-y-2">
-                <Label htmlFor="shuttle-cost">Shuttlecock Cost (฿ per person/match)</Label>
+                <Label htmlFor="shuttle-cost">Shuttlecock Cost (฿ per shuttle)</Label>
                 <Input 
                     id="shuttle-cost"
                     type="number"
-                    value={shuttlecockFeePerPerson}
-                    onChange={(e) => setShuttlecockFeePerPerson(Number(e.target.value))}
+                    value={costPerShuttle}
+                    onChange={(e) => setCostPerShuttle(Number(e.target.value))}
                     placeholder="e.g. 25"
                 />
             </div>
