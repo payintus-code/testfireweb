@@ -189,7 +189,7 @@ export function CreateMatchDialog({
                         htmlFor={`player-${player.id}`}
                         className="flex-1 cursor-pointer"
                       >
-                        {player.name} (Skill: {player.skillLevel})
+                        {player.name} (Skill: {player.skillLevel}, Played: {player.matchesPlayed || 0})
                       </Label>
                     </div>
                   ))}

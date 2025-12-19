@@ -7,6 +7,7 @@ export type Player = {
   status: 'available' | 'in-match' | 'unavailable';
   avatarUrl: string;
   availableSince?: number; // Timestamp for when the player became available
+  matchesPlayed: number;
 };
 
 export type Match = {

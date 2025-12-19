@@ -30,7 +30,7 @@ export default function PlayersPage() {
     if (storedPlayers) {
       setPlayers(JSON.parse(storedPlayers));
     } else {
-      setPlayers(PLAYERS);
+      setPlayers(PLAYERS.map(p => ({...p, matchesPlayed: p.matchesPlayed || 0})));
     }
     setIsMounted(true);
   }, []);
@@ -54,7 +54,7 @@ export default function PlayersPage() {
     });
   };
 
-  const handleFormSubmit = (playerData: Omit<Player, "id" | "avatarUrl" | "status">, id?: string) => {
+  const handleFormSubmit = (playerData: Omit<Player, "id" | "avatarUrl" | "status" | "matchesPlayed">, id?: string) => {
     if (id) {
       // Edit existing player
       setPlayers((prev) =>
@@ -74,6 +74,7 @@ export default function PlayersPage() {
         status: 'available',
         avatarUrl: `https://picsum.photos/seed/p${Date.now()}/100/100`,
         availableSince: Date.now(),
+        matchesPlayed: 0,
       };
       setPlayers((prev) => [...prev, newPlayer]);
       toast({

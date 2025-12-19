@@ -21,7 +21,7 @@ export default function Home() {
     if (storedPlayers) {
       setPlayers(JSON.parse(storedPlayers));
     } else {
-      setPlayers(PLAYERS.map(p => ({...p, availableSince: p.status === 'available' ? Date.now() : undefined })));
+      setPlayers(PLAYERS.map(p => ({...p, availableSince: p.status === 'available' ? Date.now() : undefined, matchesPlayed: p.matchesPlayed || 0 })));
     }
     
     setCourts(COURTS);
@@ -44,6 +44,7 @@ export default function Home() {
         const currentPlayers = storedPlayers ? JSON.parse(storedPlayers) : PLAYERS;
         return currentPlayers.map((p: Player) => ({
           ...p,
+          matchesPlayed: p.matchesPlayed || 0,
           status: playersInMatches.has(p.id) ? 'in-match' : p.status === 'in-match' ? 'available' : p.status,
           availableSince: playersInMatches.has(p.id) ? undefined : p.availableSince ?? (p.status === 'available' ? Date.now() : undefined)
         }));
@@ -120,9 +121,18 @@ export default function Home() {
 
 
     if (newStatus === 'completed' || newStatus === 'cancelled') {
-        setPlayers(prev => prev.map(p => 
-          playersToUpdate.includes(p.id) ? { ...p, status: 'available', availableSince: Date.now() } : p
-        ));
+        setPlayers(prev => prev.map(p => {
+          if (playersToUpdate.includes(p.id)) {
+            const isCompleted = newStatus === 'completed';
+            return { 
+              ...p, 
+              status: 'available', 
+              availableSince: Date.now(),
+              matchesPlayed: isCompleted ? (p.matchesPlayed || 0) + 1 : p.matchesPlayed 
+            };
+          }
+          return p;
+        }));
         setCourts(prev => prev.map(c => c.matchId === matchId ? {...c, matchId: null} : c));
     }
   };

@@ -114,12 +114,8 @@ export const columns = ({ onEdit, onDelete }: GetColumnsOptions): ColumnDef<Play
     },
   },
   {
-    accessorKey: "age",
-    header: "Age",
-  },
-  {
-    accessorKey: "gender",
-    header: "Gender",
+    accessorKey: "matchesPlayed",
+    header: "Matches Played",
   },
   {
     accessorKey: "status",
