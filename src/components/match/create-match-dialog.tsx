@@ -221,79 +221,81 @@ export function CreateMatchDialog({
             Use random generation for a balanced match or assemble teams manually.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="manual" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="random"><Dices className="mr-2 h-4 w-4"/>Random</TabsTrigger>
-            <TabsTrigger value="manual"><Users className="mr-2 h-4 w-4"/>Manual</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="random" className="mt-4">
-             <div className="space-y-4 text-center">
-                <p className="text-sm text-muted-foreground">
-                    Let us suggest a balanced match based on player skill levels.
-                </p>
-                <Button onClick={handleRandomGenerate} disabled={isGenerating || availablePlayers.length < 4}>
-                    {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isGenerating ? "Generating..." : "Suggest Match"}
-                </Button>
+        <ScrollArea className="max-h-[70vh] pr-6">
+          <Tabs defaultValue="manual" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="random"><Dices className="mr-2 h-4 w-4"/>Random</TabsTrigger>
+              <TabsTrigger value="manual"><Users className="mr-2 h-4 w-4"/>Manual</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="random" className="mt-4">
+              <div className="space-y-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                      Let us suggest a balanced match based on player skill levels.
+                  </p>
+                  <Button onClick={handleRandomGenerate} disabled={isGenerating || availablePlayers.length < 4}>
+                      {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isGenerating ? "Generating..." : "Suggest Match"}
+                  </Button>
 
-                {generatedMatch && (
-                    <div className="mt-4 rounded-lg border p-4 text-left space-y-4">
-                        <h3 className="font-semibold mb-2 text-center">Suggested Match</h3>
-                        <div className="flex justify-around items-start">
-                            <div className="w-1/2 pr-2 border-r">
-                                <h4 className="font-medium flex items-center justify-center mb-2">Team A <Shield className="ml-2 h-4 w-4 text-blue-500" /></h4>
-                                {generatedMatch.teamA.map(p => <p key={p.id} className="text-sm text-muted-foreground text-center">{p.name}</p>)}
-                                <p className="text-xs font-bold text-center mt-2 flex items-center justify-center gap-1">{teamSkillLevel(generatedMatch.teamA)} <Star className="h-3 w-3 text-yellow-400"/></p>
-                            </div>
-                            <div className="w-1/2 pl-2">
-                                <h4 className="font-medium flex items-center justify-center mb-2">Team B <Shield className="ml-2 h-4 w-4 text-red-500" /></h4>
-                                {generatedMatch.teamB.map(p => <p key={p.id} className="text-sm text-muted-foreground text-center">{p.name}</p>)}
-                                <p className="text-xs font-bold text-center mt-2 flex items-center justify-center gap-1">{teamSkillLevel(generatedMatch.teamB)} <Star className="h-3 w-3 text-yellow-400"/></p>
-                            </div>
-                        </div>
-                        <Alert>
-                            <Info className="h-4 w-4" />
-                            <AlertTitle>Explanation</AlertTitle>
-                            <AlertDescription>
-                                {generatedMatch.explanation}
-                            </AlertDescription>
-                        </Alert>
-                         <DialogFooter className="mt-4">
-                            <Button onClick={handleGeneratedCreate}>Schedule This Match</Button>
-                        </DialogFooter>
-                    </div>
-                )}
-             </div>
-          </TabsContent>
+                  {generatedMatch && (
+                      <div className="mt-4 rounded-lg border p-4 text-left space-y-4">
+                          <h3 className="font-semibold mb-2 text-center">Suggested Match</h3>
+                          <div className="flex justify-around items-start">
+                              <div className="w-1/2 pr-2 border-r">
+                                  <h4 className="font-medium flex items-center justify-center mb-2">Team A <Shield className="ml-2 h-4 w-4 text-blue-500" /></h4>
+                                  {generatedMatch.teamA.map(p => <p key={p.id} className="text-sm text-muted-foreground text-center">{p.name}</p>)}
+                                  <p className="text-xs font-bold text-center mt-2 flex items-center justify-center gap-1">{teamSkillLevel(generatedMatch.teamA)} <Star className="h-3 w-3 text-yellow-400"/></p>
+                              </div>
+                              <div className="w-1/2 pl-2">
+                                  <h4 className="font-medium flex items-center justify-center mb-2">Team B <Shield className="ml-2 h-4 w-4 text-red-500" /></h4>
+                                  {generatedMatch.teamB.map(p => <p key={p.id} className="text-sm text-muted-foreground text-center">{p.name}</p>)}
+                                  <p className="text-xs font-bold text-center mt-2 flex items-center justify-center gap-1">{teamSkillLevel(generatedMatch.teamB)} <Star className="h-3 w-3 text-yellow-400"/></p>
+                              </div>
+                          </div>
+                          <Alert>
+                              <Info className="h-4 w-4" />
+                              <AlertTitle>Explanation</AlertTitle>
+                              <AlertDescription>
+                                  {generatedMatch.explanation}
+                              </AlertDescription>
+                          </Alert>
+                          <DialogFooter className="mt-4">
+                              <Button onClick={handleGeneratedCreate}>Schedule This Match</Button>
+                          </DialogFooter>
+                      </div>
+                  )}
+              </div>
+            </TabsContent>
 
-          <TabsContent value="manual" className="mt-4">
-            <div className="space-y-4">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <PlayerSelectionList 
-                    title="Team A"
-                    players={availablePlayers}
-                    selectedPlayers={teamA}
-                    onPlayerSelect={(player) => handlePlayerSelect(player, 'A')}
-                    otherTeamPlayers={teamB}
-                 />
-                 <PlayerSelectionList 
-                    title="Team B"
-                    players={availablePlayers}
-                    selectedPlayers={teamB}
-                    onPlayerSelect={(player) => handlePlayerSelect(player, 'B')}
-                    otherTeamPlayers={teamA}
-                 />
-               </div>
-               
-               <AvoidanceWarnings teamA={teamA} teamB={teamB} />
+            <TabsContent value="manual" className="mt-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <PlayerSelectionList 
+                      title="Team A"
+                      players={availablePlayers}
+                      selectedPlayers={teamA}
+                      onPlayerSelect={(player) => handlePlayerSelect(player, 'A')}
+                      otherTeamPlayers={teamB}
+                  />
+                  <PlayerSelectionList 
+                      title="Team B"
+                      players={availablePlayers}
+                      selectedPlayers={teamB}
+                      onPlayerSelect={(player) => handlePlayerSelect(player, 'B')}
+                      otherTeamPlayers={teamA}
+                  />
+                </div>
+                
+                <AvoidanceWarnings teamA={teamA} teamB={teamB} />
 
-              <DialogFooter>
-                  <Button onClick={handleManualCreate} disabled={teamA.length !== 2 || teamB.length !== 2}>Schedule Match</Button>
-              </DialogFooter>
-            </div>
-          </TabsContent>
-        </Tabs>
+                <DialogFooter>
+                    <Button onClick={handleManualCreate} disabled={teamA.length !== 2 || teamB.length !== 2}>Schedule Match</Button>
+                </DialogFooter>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
