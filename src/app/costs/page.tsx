@@ -126,7 +126,7 @@ export default function CostsPage() {
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <h1 className="text-3xl font-bold mb-6">Cost Summary</h1>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="grid gap-6 md:grid-cols-2 mb-6">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Grand Total</CardTitle>
@@ -163,7 +163,7 @@ export default function CostsPage() {
             <CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5"/>Cost Configuration</CardTitle>
             <CardDescription>Adjust the fees used for cost calculation.</CardDescription>
         </CardHeader>
-        <CardContent className="grid md:grid-cols-2 gap-4">
+        <CardContent className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="daily-fee">Daily Fee (฿)</Label>
                 <Input 

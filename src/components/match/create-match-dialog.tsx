@@ -174,11 +174,6 @@ export function CreateMatchDialog({
 
   const handleGeneratedCreate = () => {
     if (!generatedMatch) {
-      toast({
-        title: "No Match Generated",
-        description: "Please generate a match first.",
-        variant: "destructive",
-      });
       return;
     }
     onMatchCreate({ courtId: court.id, teamA: generatedMatch.teamA, teamB: generatedMatch.teamB });
@@ -195,7 +190,7 @@ export function CreateMatchDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { onOpenChange(open); if (!open) resetState(); }}>
-      <DialogContent className="sm:max-w-md md:sm:max-w-3xl">
+      <DialogContent className="sm:max-w-md md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create Match on {court.name}</DialogTitle>
           <DialogDescription>
@@ -251,7 +246,7 @@ export function CreateMatchDialog({
 
             <TabsContent value="manual" className="mt-4">
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <PlayerSelectionList 
                       title="Team A"
                       players={availablePlayers}

@@ -42,7 +42,7 @@ export default function Home() {
       setPlayers(prev => {
         const storedPlayers = localStorage.getItem("players");
         const currentPlayers = storedPlayers ? JSON.parse(storedPlayers) : [];
-        if (!currentPlayers) return [];
+        if (!currentPlayers || currentPlayers.length === 0) return [];
         return currentPlayers.map((p: Player) => ({
           ...p,
           matchesPlayed: p.matchesPlayed || 0,
@@ -51,6 +51,8 @@ export default function Home() {
         }));
       });
 
+    } else {
+       setMatches([]);
     }
 
     setIsMounted(true);
@@ -147,7 +149,7 @@ export default function Home() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {courts.map((court) => {
           const match = matches.find(m => m.id === court.matchId) || null;
           return (
