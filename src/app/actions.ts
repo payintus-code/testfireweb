@@ -6,8 +6,7 @@ import type { Player } from "@/lib/types";
 
 /**
  * Generates a balanced match by prioritizing players who have played fewer matches and have been waiting longer.
- * After selecting the top 4 players, it finds the team pairing with the minimum skill level difference,
- * ensuring the difference is no more than 1.
+ * After selecting the top 4 players, it finds the team pairing with the minimum skill level difference.
  *
  * @param availablePlayers - An array of players with 'available' status.
  * @returns An object containing teamA and teamB arrays of players, and an explanation.
@@ -58,11 +57,11 @@ export async function generateBalancedMatch(
     }
   }
 
-  if (bestPairing === null || minDiff > 1) {
-    // This case should be rare, but as a fallback, we use the default pairing.
-    // Or we could throw an error if a strict balance is required.
-    // Let's throw an error to signal that balancing failed under the new rule.
-    throw new Error("Could not find a balanced match where team skill difference is 1 or less. Please select manually.");
+  // With this logic, bestPairing will always be assigned if there are 4 players.
+  // The error for not finding a balanced match is removed.
+  if (!bestPairing) {
+    // This should not happen if pairings array is not empty.
+    throw new Error("Could not determine any pairings. Please select manually.");
   }
 
   const { teamA, teamB } = bestPairing;
