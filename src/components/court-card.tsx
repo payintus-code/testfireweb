@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Swords, Users, Calendar, Trophy, Play, Flag, Ban, Check, X, Clock } from "lucide-react";
+import { Swords, Users, Calendar, Trophy, Play, Flag, Ban, Check, X, Clock, Plus, Minus } from "lucide-react";
 import Image from "next/image";
 import {
   Card,
@@ -26,12 +26,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import type { Court, Match } from "@/lib/types";
+import { ShuttlecockIcon } from "./icons/shuttlecock-icon";
 
 type CourtCardProps = {
   court: Court;
   match: Match | null;
   onCreateMatch: (courtId: number) => void;
-  onUpdateMatchStatus: (matchId: string, newStatus: Match['status'], scoreA?: number, scoreB?: number) => void;
+  onUpdateMatch: (matchId: string, updates: Partial<Omit<Match, 'id'>>) => void;
 };
 
 const TeamDisplay = ({ team }: { team: Match['teamA'] }) => (
@@ -50,12 +51,13 @@ const TeamDisplay = ({ team }: { team: Match['teamA'] }) => (
   </div>
 );
 
-const EndMatchDialog = ({ match, onUpdateMatchStatus, open, onOpenChange }: { match: Match, onUpdateMatchStatus: CourtCardProps['onUpdateMatchStatus'], open: boolean, onOpenChange: (open: boolean) => void }) => {
+const EndMatchDialog = ({ match, onUpdateMatch, open, onOpenChange }: { match: Match, onUpdateMatch: CourtCardProps['onUpdateMatch'], open: boolean, onOpenChange: (open: boolean) => void }) => {
     const [scoreA, setScoreA] = useState(match.scoreA);
     const [scoreB, setScoreB] = useState(match.scoreB);
+    const [shuttlecocksUsed, setShuttlecocksUsed] = useState(match.shuttlecocksUsed);
 
     const handleConfirmEnd = () => {
-        onUpdateMatchStatus(match.id, 'completed', scoreA, scoreB);
+        onUpdateMatch(match.id, { status: 'completed', scoreA, scoreB, shuttlecocksUsed });
         onOpenChange(false);
     }
     
@@ -74,19 +76,25 @@ const EndMatchDialog = ({ match, onUpdateMatchStatus, open, onOpenChange }: { ma
                 <AlertDialogHeader>
                     <AlertDialogTitle>End Match on {match.courtId}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Please enter the final score for the match.
+                        Please enter the final score and shuttlecocks used for the match.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="flex items-center justify-center gap-4 py-4">
-                    <div className="flex flex-col items-center gap-2">
-                        <label htmlFor="scoreA" className="text-sm font-medium">Team A</label>
-                        <Input id="scoreA" type="number" value={scoreA || ''} onChange={(e) => handleScoreChange(setScoreA, e.target.value)} className="w-20 text-center text-lg" />
-                    </div>
-                    <span className="text-2xl font-bold">-</span>
-                    <div className="flex flex-col items-center gap-2">
-                        <label htmlFor="scoreB" className="text-sm font-medium">Team B</label>
-                        <Input id="scoreB" type="number" value={scoreB || ''} onChange={(e) => handleScoreChange(setScoreB, e.target.value)} className="w-20 text-center text-lg" />
-                    </div>
+                <div className="space-y-4 py-4">
+                  <div className="flex items-center justify-center gap-4">
+                      <div className="flex flex-col items-center gap-2">
+                          <label htmlFor="scoreA" className="text-sm font-medium">Team A</label>
+                          <Input id="scoreA" type="number" value={scoreA || ''} onChange={(e) => handleScoreChange(setScoreA, e.target.value)} className="w-20 text-center text-lg" />
+                      </div>
+                      <span className="text-2xl font-bold">-</span>
+                      <div className="flex flex-col items-center gap-2">
+                          <label htmlFor="scoreB" className="text-sm font-medium">Team B</label>
+                          <Input id="scoreB" type="number" value={scoreB || ''} onChange={(e) => handleScoreChange(setScoreB, e.target.value)} className="w-20 text-center text-lg" />
+                      </div>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                      <label htmlFor="shuttlecocks" className="text-sm font-medium">Shuttlecocks Used:</label>
+                      <Input id="shuttlecocks" type="number" value={shuttlecocksUsed} onChange={(e) => handleScoreChange(setShuttlecocksUsed, e.target.value)} className="w-20 text-center" />
+                  </div>
                 </div>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -143,11 +151,35 @@ const MatchTimer = ({ match }: { match: Match }) => {
   )
 }
 
+const ShuttlecockCounter = ({ match, onUpdateMatch }: { match: Match, onUpdateMatch: CourtCardProps['onUpdateMatch'] }) => {
+  const handleUpdate = (increment: number) => {
+    const newCount = Math.max(0, match.shuttlecocksUsed + increment);
+    onUpdateMatch(match.id, { shuttlecocksUsed: newCount });
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <ShuttlecockIcon className="w-4 h-4" />
+      <span>{match.shuttlecocksUsed}</span>
+      {match.status === 'in-progress' && (
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdate(-1)}>
+            <Minus className="h-3 w-3" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdate(1)}>
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function CourtCard({
   court,
   match,
   onCreateMatch,
-  onUpdateMatchStatus,
+  onUpdateMatch,
 }: CourtCardProps) {
   const [isEndMatchDialogOpen, setEndMatchDialogOpen] = useState(false);
 
@@ -181,9 +213,10 @@ export default function CourtCard({
                   <span>{match.teamB[0].name.split(' ')[0]} & {match.teamB[1].name.split(' ')[0]}</span>
               </div>
               { (match.status === 'in-progress' || match.status === 'completed') && <MatchTimer match={match} /> }
+              <ShuttlecockCounter match={match} onUpdateMatch={onUpdateMatch} />
           </div>
         </div>
-        {match && <EndMatchDialog match={match} onUpdateMatchStatus={onUpdateMatchStatus} open={isEndMatchDialogOpen} onOpenChange={setEndMatchDialogOpen} />}
+        {match && <EndMatchDialog match={match} onUpdateMatch={onUpdateMatch} open={isEndMatchDialogOpen} onOpenChange={setEndMatchDialogOpen} />}
       </>
     );
   };
@@ -215,7 +248,7 @@ export default function CourtCard({
       {match && (
         <CardFooter className="bg-muted/50 p-3 flex justify-end gap-2">
           {match.status === 'scheduled' && (
-             <Button variant="default" size="sm" onClick={() => onUpdateMatchStatus(match.id, 'in-progress')}>
+             <Button variant="default" size="sm" onClick={() => onUpdateMatch(match.id, { status: 'in-progress' })}>
                 <Play className="mr-2 h-4 w-4" /> Start Match
             </Button>
           )}
@@ -240,7 +273,7 @@ export default function CourtCard({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Go Back</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onUpdateMatchStatus(match.id, 'cancelled')}>Confirm</AlertDialogAction>
+                  <AlertDialogAction onClick={() => onUpdateMatch(match.id, { status: 'cancelled' })}>Confirm</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

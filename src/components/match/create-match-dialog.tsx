@@ -17,9 +17,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { generateBalancedMatch } from "@/app/actions";
 import type { Court, Player, Match } from "@/lib/types";
-import { Separator } from "../ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Users, Wand2, Loader2, Star, Shield, Dices, UserX, TriangleAlert } from "lucide-react";
+import { Info, Users, Loader2, Star, Shield, Dices, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type CreateMatchDialogProps = {
@@ -27,7 +26,7 @@ type CreateMatchDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
   court: Court;
   availablePlayers: Player[];
-  onMatchCreate: (newMatch: Omit<Match, "id" | "status" | "scoreA" | "scoreB">) => void;
+  onMatchCreate: (newMatch: Omit<Match, "id" | "status" | "scoreA" | "scoreB" | "shuttlecocksUsed">) => void;
 };
 
 const PlayerSelectionList = ({
@@ -196,21 +195,6 @@ export function CreateMatchDialog({
   }
 
   const teamSkillLevel = (team: Player[]) => team.reduce((acc, p) => acc + p.skillLevel, 0);
-  
-  const hasAvoidanceConflict = useMemo(() => {
-    const allSelectedPlayers = [...teamA, ...teamB];
-    for (const player of allSelectedPlayers) {
-        const avoidIds = player.avoidPlayers || [];
-        if (avoidIds.length > 0) {
-            for (const otherPlayer of allSelectedPlayers) {
-                if (player.id !== otherPlayer.id && avoidIds.includes(otherPlayer.id)) {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-  }, [teamA, teamB]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { onOpenChange(open); if (!open) resetState(); }}>

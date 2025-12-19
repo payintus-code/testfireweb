@@ -20,6 +20,7 @@ import {
 import { Trophy, Clock } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { ShuttlecockIcon } from "@/components/icons/shuttlecock-icon";
 
 const TeamDisplay = ({ team }: { team: Player[] }) => (
   <div className="flex items-center gap-2">
@@ -113,6 +114,7 @@ export default function SummaryPage() {
                   <TableHead>Team A</TableHead>
                   <TableHead>Team B</TableHead>
                   <TableHead>Duration</TableHead>
+                  <TableHead>Shuttles</TableHead>
                   <TableHead className="text-right">Score</TableHead>
                 </TableRow>
               </TableHeader>
@@ -132,6 +134,12 @@ export default function SummaryPage() {
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Clock className="w-4 h-4"/>
                         <span>{getDuration(match)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <ShuttlecockIcon className="w-4 h-4"/>
+                        <span>{match.shuttlecocksUsed || 0}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-mono font-semibold">

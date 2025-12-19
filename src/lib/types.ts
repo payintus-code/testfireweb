@@ -21,6 +21,7 @@ export type Match = {
   status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
   startTime?: number;
   endTime?: number;
+  shuttlecocksUsed: number;
 };
 
 export type Court = {

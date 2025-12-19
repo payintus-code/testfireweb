@@ -29,7 +29,7 @@ export default function Home() {
     const storedMatches = localStorage.getItem("matches");
     if (storedMatches) {
       const parsedMatches: Match[] = JSON.parse(storedMatches);
-      setMatches(parsedMatches);
+      setMatches(parsedMatches.map(m => ({ ...m, shuttlecocksUsed: m.shuttlecocksUsed || 0 })));
 
       // Restore court and player states based on loaded matches
       const playersInMatches = new Set(parsedMatches.flatMap(m => m.status !== 'completed' && m.status !== 'cancelled' ? [...m.teamA, ...m.teamB].map(p => p.id) : []));
@@ -68,7 +68,7 @@ export default function Home() {
     setDialogOpen(true);
   };
   
-  const handleMatchCreate = (newMatch: Omit<Match, "id" | "status" | "scoreA" | "scoreB">) => {
+  const handleMatchCreate = (newMatch: Omit<Match, "id" | "status" | "scoreA" | "scoreB" | "shuttlecocksUsed">) => {
     if (!selectedCourt) return;
 
     const matchId = `match-${Date.now()}`;
@@ -78,6 +78,7 @@ export default function Home() {
       status: 'scheduled',
       scoreA: 0,
       scoreB: 0,
+      shuttlecocksUsed: 0,
     };
 
     setMatches(prev => [...prev, matchWithId]);
@@ -95,32 +96,31 @@ export default function Home() {
     setSelectedCourt(null);
   };
 
-  const handleMatchUpdate = (matchId: string, newStatus: Match['status'], scoreA?: number, scoreB?: number) => {
+  const handleMatchUpdate = (matchId: string, updates: Partial<Omit<Match, 'id'>>) => {
     let playersToUpdate: string[] = [];
     
     const updatedMatches = matches.map(m => {
         if (m.id === matchId) {
-            if (newStatus === 'completed' || newStatus === 'cancelled') {
-              playersToUpdate = [...m.teamA, ...m.teamB].map(p => p.id);
-            }
-            const updatedMatch: Match = {...m, status: newStatus};
-            if (scoreA !== undefined) updatedMatch.scoreA = scoreA;
-            if (scoreB !== undefined) updatedMatch.scoreB = scoreB;
-            
-            if (newStatus === 'in-progress' && !m.startTime) {
-              updatedMatch.startTime = Date.now();
-            } else if (newStatus === 'completed' && !m.endTime) {
-              updatedMatch.endTime = Date.now();
-            }
+            const originalStatus = m.status;
+            const updatedMatch = { ...m, ...updates };
 
+            if (updates.status && updates.status !== originalStatus) {
+              if (updates.status === 'completed' || updates.status === 'cancelled') {
+                playersToUpdate = [...m.teamA, ...m.teamB].map(p => p.id);
+                updatedMatch.endTime = updatedMatch.endTime ?? Date.now();
+              }
+              if (updates.status === 'in-progress' && !m.startTime) {
+                updatedMatch.startTime = Date.now();
+              }
+            }
             return updatedMatch;
         }
         return m;
     });
     setMatches(updatedMatches);
 
-
-    if (newStatus === 'completed' || newStatus === 'cancelled') {
+    const newStatus = updates.status;
+    if (newStatus && (newStatus === 'completed' || newStatus === 'cancelled')) {
         setPlayers(prev => prev.map(p => {
           if (playersToUpdate.includes(p.id)) {
             const isCompleted = newStatus === 'completed';
@@ -155,7 +155,7 @@ export default function Home() {
               court={court}
               match={match}
               onCreateMatch={() => handleCreateMatchClick(court)}
-              onUpdateMatchStatus={handleMatchUpdate}
+              onUpdateMatch={handleMatchUpdate}
             />
           );
         })}
