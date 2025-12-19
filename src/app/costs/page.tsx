@@ -60,9 +60,9 @@ export default function CostsPage() {
 
   const playerCosts = useMemo((): PlayerCost[] => {
     if (completedMatches.length === 0) return [];
-  
+
     const playerCostsMap = new Map<string, PlayerCost>();
-  
+
     // Initialize map for all players who have played at least one match
     players.forEach(p => {
         const playerMatches = completedMatches.filter(match => 
@@ -81,8 +81,8 @@ export default function CostsPage() {
             });
         }
     });
-  
-    // Iterate through each completed match to aggregate costs
+
+    // Iterate through each completed match to aggregate shuttlecocks used
     completedMatches.forEach(match => {
         const playersInMatch = [...match.teamA, ...match.teamB];
         const shuttlecocksUsedInMatch = match.shuttlecocksUsed || 0;
@@ -94,10 +94,10 @@ export default function CostsPage() {
             }
         });
     });
-  
+
     // Final calculation for total cost
     const costs = Array.from(playerCostsMap.values()).map(cost => {
-      // Calculate total shuttlecock cost based on the accumulated usage
+      // Shuttlecock cost is matches played * fee per person per match
       const totalShuttlecockCostForPlayer = cost.matchesPlayed * shuttlecockFeePerPerson;
       return {
         ...cost,
@@ -105,9 +105,9 @@ export default function CostsPage() {
         totalCost: cost.dailyFee + totalShuttlecockCostForPlayer,
       }
     });
-  
+
     return costs.sort((a, b) => b.totalCost - a.totalCost);
-  
+
   }, [completedMatches, players, dailyFee, shuttlecockFeePerPerson]);
 
   const totalShuttlecocksUsed = useMemo(() => {
@@ -254,5 +254,3 @@ export default function CostsPage() {
     </div>
   );
 }
-
-    
