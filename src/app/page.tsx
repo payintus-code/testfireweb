@@ -42,6 +42,7 @@ export default function Home() {
       setPlayers(prev => {
         const storedPlayers = localStorage.getItem("players");
         const currentPlayers = storedPlayers ? JSON.parse(storedPlayers) : [];
+        if (!currentPlayers) return [];
         return currentPlayers.map((p: Player) => ({
           ...p,
           matchesPlayed: p.matchesPlayed || 0,
@@ -78,7 +79,7 @@ export default function Home() {
       status: 'scheduled',
       scoreA: 0,
       scoreB: 0,
-      shuttlecocksUsed: 0,
+      shuttlecocksUsed: 1,
     };
 
     setMatches(prev => [...prev, matchWithId]);

@@ -41,7 +41,7 @@ export default function CostsPage() {
   const [completedMatches, setCompletedMatches] = useState<Match[]>([]);
   const [isMounted, setIsMounted] = useState(false);
   const [dailyFee, setDailyFee] = useState(70);
-  const [shuttlecockCost, setShuttlecockCost] = useState(25);
+  const [shuttlecockCost, setShuttlecockCost] = useState(100);
 
 
   useEffect(() => {
