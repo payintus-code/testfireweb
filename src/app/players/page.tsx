@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { columns } from "@/components/player/player-columns";
 import { PlayerDataTable } from "@/components/player/player-data-table";
 import { PlayerForm } from "@/components/player/player-form";
+import { AvoidListDialog } from "@/components/player/avoid-list-dialog";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,8 @@ export default function PlayersPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [isFormOpen, setFormOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | undefined>(undefined);
+  const [isAvoidListDialogOpen, setAvoidListDialogOpen] = useState(false);
+  const [playerForAvoidList, setPlayerForAvoidList] = useState<Player | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -75,6 +78,7 @@ export default function PlayersPage() {
         avatarUrl: `https://picsum.photos/seed/p${Date.now()}/100/100`,
         availableSince: Date.now(),
         matchesPlayed: 0,
+        avoidPlayers: [],
       };
       setPlayers((prev) => [...prev, newPlayer]);
       toast({
@@ -84,6 +88,23 @@ export default function PlayersPage() {
     }
     setFormOpen(false);
     setEditingPlayer(undefined);
+  };
+  
+  const handleManageAvoidList = (player: Player) => {
+    setPlayerForAvoidList(player);
+    setAvoidListDialogOpen(true);
+  };
+
+  const handleAvoidListSave = (playerId: string, avoidPlayerIds: string[]) => {
+    setPlayers(prev => prev.map(p => 
+      p.id === playerId ? { ...p, avoidPlayers: avoidPlayerIds } : p
+    ));
+    toast({
+      title: "Avoid List Updated",
+      description: "The player's avoid list has been saved.",
+    });
+    setAvoidListDialogOpen(false);
+    setPlayerForAvoidList(null);
   };
 
   if (!isMounted) {
@@ -111,7 +132,17 @@ export default function PlayersPage() {
           </DialogContent>
         </Dialog>
       </div>
-      <PlayerDataTable columns={columns({ onEdit: handleEdit, onDelete: handleDelete })} data={players} />
+      <PlayerDataTable columns={columns({ onEdit: handleEdit, onDelete: handleDelete, onManageAvoidList: handleManageAvoidList })} data={players} />
+
+      {playerForAvoidList && (
+        <AvoidListDialog
+          isOpen={isAvoidListDialogOpen}
+          onOpenChange={setAvoidListDialogOpen}
+          player={playerForAvoidList}
+          allPlayers={players}
+          onSave={handleAvoidListSave}
+        />
+      )}
     </div>
   );
 }

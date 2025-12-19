@@ -2,7 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import Image from "next/image";
-import { MoreHorizontal, Pencil, Star, Trash2, Clock } from "lucide-react";
+import { MoreHorizontal, Pencil, Star, Trash2, Clock, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -32,6 +32,7 @@ const statusText: { [key in Player["status"]]: string } = {
 type GetColumnsOptions = {
   onEdit: (player: Player) => void;
   onDelete: (playerId: string) => void;
+  onManageAvoidList: (player: Player) => void;
 };
 
 const TimeAvailableCell = ({ row }: { row: { original: Player } }) => {
@@ -71,7 +72,7 @@ const TimeAvailableCell = ({ row }: { row: { original: Player } }) => {
     );
 };
 
-export const columns = ({ onEdit, onDelete }: GetColumnsOptions): ColumnDef<Player>[] => [
+export const columns = ({ onEdit, onDelete, onManageAvoidList }: GetColumnsOptions): ColumnDef<Player>[] => [
   {
     accessorKey: "name",
     header: "Name",
@@ -150,6 +151,9 @@ export const columns = ({ onEdit, onDelete }: GetColumnsOptions): ColumnDef<Play
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => onEdit(player)}>
                 <Pencil className="mr-2 h-4 w-4" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onManageAvoidList(player)}>
+                <UserX className="mr-2 h-4 w-4" /> Manage Avoid List
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 

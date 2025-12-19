@@ -8,6 +8,7 @@ export type Player = {
   avatarUrl: string;
   availableSince?: number; // Timestamp for when the player became available
   matchesPlayed: number;
+  avoidPlayers?: string[]; // Array of player IDs to avoid
 };
 
 export type Match = {
