@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -106,6 +107,9 @@ export default function Home() {
       scoreB: 0,
       shuttlecocksUsed: 1,
     };
+    
+    const isFirstMatch = matches.length === 0;
+    const now = Date.now();
 
     setMatches(prev => [...prev, matchWithId]);
     
@@ -114,9 +118,17 @@ export default function Home() {
     ));
     
     const playerIdsInMatch = [...newMatch.teamA, ...newMatch.teamB].map(p => p.id);
-    setPlayers(prev => prev.map(p => 
-      playerIdsInMatch.includes(p.id) ? { ...p, status: 'in-match', availableSince: undefined } : p
-    ));
+
+    setPlayers(prev => prev.map(p => {
+      if (playerIdsInMatch.includes(p.id)) {
+        return { ...p, status: 'in-match', availableSince: undefined };
+      }
+      // If it's the first match, set availableSince for all other available players
+      if (isFirstMatch && p.status === 'available') {
+        return { ...p, availableSince: now };
+      }
+      return p;
+    }));
 
     setDialogOpen(false);
     setSelectedCourt(null);
