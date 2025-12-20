@@ -1,3 +1,4 @@
+
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -116,6 +117,7 @@ export const columns = ({ onEdit, onDelete, onManageAvoidList }: GetColumnsOptio
   },
   {
     accessorKey: "matchesPlayed",
+    id: "matchesPlayed",
     header: () => <div className="hidden md:table-cell">Matches Played</div>,
     cell: ({ row }) => <div className="hidden md:table-cell">{row.original.matchesPlayed}</div>,
   },
@@ -132,6 +134,7 @@ export const columns = ({ onEdit, onDelete, onManageAvoidList }: GetColumnsOptio
     },
   },
   {
+    id: "timeAvailable",
     header: () => <div className="hidden md:table-cell">Time Available</div>,
     cell: ({ row }) => <div className="hidden md:table-cell"><TimeAvailableCell row={row} /></div>,
   },

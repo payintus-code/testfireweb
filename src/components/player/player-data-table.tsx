@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -51,6 +52,8 @@ export function PlayerDataTable<TData, TValue>({
     },
   });
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   return (
     <div>
       <div className="flex items-center py-4">
@@ -69,10 +72,11 @@ export function PlayerDataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
-                  const isHidden = (header.column.id === 'matchesPlayed' || header.column.id === 'timeAvailable') && window.innerWidth < 768;
+                  const isHiddenOnMobile = (header.column.id === 'matchesPlayed' || header.column.id === 'timeAvailable');
+                  if (isMobile && isHiddenOnMobile) return null;
 
                   return (
-                    <TableHead key={header.id} className={header.column.columnDef.header && typeof header.column.columnDef.header !== 'string' ? '' : 'hidden md:table-cell'}>
+                    <TableHead key={header.id}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -92,14 +96,18 @@ export function PlayerDataTable<TData, TValue>({
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const isHiddenOnMobile = (cell.column.id === 'matchesPlayed' || cell.column.id === 'timeAvailable');
+                    if (isMobile && isHiddenOnMobile) return null;
+                    return (
+                      <TableCell key={cell.id} >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    )
+                   })}
                 </TableRow>
               ))
             ) : (
