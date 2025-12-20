@@ -140,13 +140,29 @@ export default function PlayersPage() {
 
   return (
     <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-start mb-6">
         <h1 className="text-3xl font-bold">Player Management</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
+            <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setFormOpen(isOpen); if (!isOpen) setEditingPlayer(undefined); }}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add Player
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>{editingPlayer ? 'Edit Player' : 'Add New Player'}</DialogTitle>
+                  <DialogDescription>
+                    {editingPlayer ? "Update the player's details below." : "Enter the details for the new player."}
+                  </DialogDescription>
+                </DialogHeader>
+                <PlayerForm onSubmit={handleFormSubmit} player={editingPlayer} />
+              </DialogContent>
+            </Dialog>
             <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={players.length === 0}>
-                        <Trash2 className="mr-2 h-4 w-4" /> Clear All Players
+                    <Button variant="destructive" size="sm" disabled={players.length === 0}>
+                        <Trash2 className="mr-2 h-4 w-4" /> Clear All
                     </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -165,22 +181,6 @@ export default function PlayersPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setFormOpen(isOpen); if (!isOpen) setEditingPlayer(undefined); }}>
-              <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Add Player
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>{editingPlayer ? 'Edit Player' : 'Add New Player'}</DialogTitle>
-                  <DialogDescription>
-                    {editingPlayer ? "Update the player's details below." : "Enter the details for the new player."}
-                  </DialogDescription>
-                </DialogHeader>
-                <PlayerForm onSubmit={handleFormSubmit} player={editingPlayer} />
-              </DialogContent>
-            </Dialog>
         </div>
       </div>
       <PlayerDataTable columns={columns({ onEdit: handleEdit, onDelete: handleDelete, onManageAvoidList: handleManageAvoidList })} data={players} />
