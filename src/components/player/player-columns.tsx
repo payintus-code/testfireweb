@@ -109,14 +109,15 @@ export const columns = ({ onEdit, onDelete, onManageAvoidList }: GetColumnsOptio
               )}
             />
           ))}
-          <span className="ml-2 text-muted-foreground">({level})</span>
+          <span className="ml-2 text-muted-foreground hidden md:inline">({level})</span>
         </div>
       );
     },
   },
   {
     accessorKey: "matchesPlayed",
-    header: "Matches Played",
+    header: () => <div className="hidden md:table-cell">Matches Played</div>,
+    cell: ({ row }) => <div className="hidden md:table-cell">{row.original.matchesPlayed}</div>,
   },
   {
     accessorKey: "status",
@@ -131,8 +132,8 @@ export const columns = ({ onEdit, onDelete, onManageAvoidList }: GetColumnsOptio
     },
   },
   {
-    header: "Time Available",
-    cell: TimeAvailableCell,
+    header: () => <div className="hidden md:table-cell">Time Available</div>,
+    cell: ({ row }) => <div className="hidden md:table-cell"><TimeAvailableCell row={row} /></div>,
   },
   {
     id: "actions",

@@ -69,8 +69,10 @@ export function PlayerDataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
+                  const isHidden = (header.column.id === 'matchesPlayed' || header.column.id === 'timeAvailable') && window.innerWidth < 768;
+
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className={header.column.columnDef.header && typeof header.column.columnDef.header !== 'string' ? '' : 'hidden md:table-cell'}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -91,7 +93,7 @@ export function PlayerDataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
