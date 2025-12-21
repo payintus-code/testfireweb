@@ -7,6 +7,7 @@ const MAX_TEAMMATE_COUNT = 2;
 const MAX_OPPONENT_COUNT = 2;
 const MAX_LIGHT_GAMES = 2;
 const SKILL_DIFF_FOR_LIGHT_GAME = 2;
+const MAX_WAIT_TIME_DIFF_MS = 10 * 60 * 1000; // 10 minutes
 
 type History = {
     teammates: Record<string, number>;
@@ -20,10 +21,6 @@ type PlayerHistories = Record<string, History>;
 
 function buildPlayerHistories(matches: Match[]): PlayerHistories {
     const histories: PlayerHistories = {};
-    const playerLastMatch: Record<string, Match> = {};
-
-    // Sort matches by end time to correctly determine the last match
-    const sortedMatches = [...matches].filter(m => m.status === 'completed' && m.endTime).sort((a, b) => a.endTime! - b.endTime!);
 
     const ensureHistory = (playerId: string) => {
         if (!histories[playerId]) {
@@ -36,9 +33,20 @@ function buildPlayerHistories(matches: Match[]): PlayerHistories {
             };
         }
     };
+    
+    // Ensure all players have a history entry initialized
+    const allPlayerIdsInMatches = new Set(matches.flatMap(m => [...m.teamA.map(p => p.id), ...m.teamB.map(p => p.id)]));
+    allPlayerIdsInMatches.forEach(id => ensureHistory(id));
+
+
+    // Sort matches by end time to correctly determine the last match
+    const sortedMatches = [...matches].filter(m => m.status === 'completed' && m.endTime).sort((a, b) => a.endTime! - b.endTime!);
+    
+    const playerLastMatch: Record<string, Match> = {};
 
     for (const match of sortedMatches) {
         const allPlayersInMatch = [...match.teamA, ...match.teamB];
+
         allPlayersInMatch.forEach(p => {
             ensureHistory(p.id);
             playerLastMatch[p.id] = match; // Update last match for each player
@@ -86,13 +94,11 @@ function buildPlayerHistories(matches: Match[]): PlayerHistories {
         const lastMatch = playerLastMatch[playerId];
         const playerIsOnTeamA = lastMatch.teamA.some(p => p.id === playerId);
         
-        if (playerIsOnTeamA) {
-            histories[playerId].lastTeammates = lastMatch.teamA.filter(p => p.id !== playerId).map(p => p.id);
-            histories[playerId].lastOpponents = lastMatch.teamB.map(p => p.id);
-        } else {
-            histories[playerId].lastTeammates = lastMatch.teamB.filter(p => p.id !== playerId).map(p => p.id);
-            histories[playerId].lastOpponents = lastMatch.teamA.map(p => p.id);
-        }
+        histories[playerId].lastTeammates = (playerIsOnTeamA ? lastMatch.teamA : lastMatch.teamB)
+          .filter(p => p.id !== playerId)
+          .map(p => p.id);
+        histories[playerId].lastOpponents = (playerIsOnTeamA ? lastMatch.teamB : lastMatch.teamA)
+          .map(p => p.id);
     }
 
     return histories;
@@ -107,16 +113,16 @@ function checkPairingConstraints(
     const playersInMatch = [...teamA, ...teamB];
 
     for (const player of playersInMatch) {
+        // Ensure player has a history, even if they haven't played before
         const history = histories[player.id] || { teammates: {}, opponents: {}, lightGames: 0, lastTeammates: [], lastOpponents: [] };
 
         // Check teammate constraints
-        const teammates = teamA.includes(player) ? teamA : teamB;
+        const teammates = teamA.some(p => p.id === player.id) ? teamA : teamB;
         for (const teammate of teammates) {
             if (player.id !== teammate.id) {
                 if ((history.teammates[teammate.id] || 0) >= MAX_TEAMMATE_COUNT) {
                     issues.push(`${player.name} and ${teammate.name} have been teammates ${MAX_TEAMMATE_COUNT} times already.`);
                 }
-                // NEW: Check for immediate re-teaming
                 if (history.lastTeammates.includes(teammate.id)) {
                     issues.push(`${player.name} and ${teammate.name} were teammates in the last match.`);
                 }
@@ -124,12 +130,11 @@ function checkPairingConstraints(
         }
         
         // Check opponent constraints
-        const opponents = teamA.includes(player) ? teamB : teamA;
+        const opponents = teamA.some(p => p.id === player.id) ? teamB : teamA;
         for (const opponent of opponents) {
              if ((history.opponents[opponent.id] || 0) >= MAX_OPPONENT_COUNT) {
                 issues.push(`${player.name} has played against ${opponent.name} ${MAX_OPPONENT_COUNT} times already.`);
             }
-            // NEW: Check for immediate opposition
             if (history.lastOpponents.includes(opponent.id)) {
                 issues.push(`${player.name} played against ${opponent.name} in the last match.`);
             }
@@ -220,9 +225,8 @@ export async function generateBalancedMatch(
 
   // 1 & 2: Sort by matches played, then by wait time
   const sortedPlayers = [...availablePlayers].sort((a, b) => {
-    // Get total matches played from histories for consistency
-    const aMatchesPlayed = Object.values(histories[a.id]?.teammates || {}).reduce((s, c) => s + c, 0) / 2 + Object.values(histories[a.id]?.opponents || {}).reduce((s, c) => s + c, 0);
-    const bMatchesPlayed = Object.values(histories[b.id]?.teammates || {}).reduce((s, c) => s + c, 0) / 2 + Object.values(histories[b.id]?.opponents || {}).reduce((s, c) => s + c, 0);
+    const aMatchesPlayed = a.matchesPlayed || 0;
+    const bMatchesPlayed = b.matchesPlayed || 0;
     
     if (aMatchesPlayed !== bMatchesPlayed) {
       return aMatchesPlayed - bMatchesPlayed;
@@ -240,18 +244,18 @@ export async function generateBalancedMatch(
 
   // If the best match with the initial group is perfect (no issues, diff <= 1), we can consider it
   if (bestMatchup && bestMatchup.issues.length === 0 && bestMatchup.diff <= 1) {
-      explanation += `Found a valid and balanced pairing (skill diff: ${bestMatchup.diff}).`;
+      explanation += `Found a valid and perfectly balanced pairing (skill diff: ${bestMatchup.diff}).`;
       return { ...bestMatchup, explanation, issues: bestMatchup.issues };
   }
 
   // 4. If not ideal, try swapping players to find a "perfect" match (no issues, diff <=1)
-  const MAX_WAIT_TIME_DIFF_MS = 10 * 60 * 1000;
-  
   for (let i = 3; i >= 0; i--) { // Iterate backwards to swap out lowest priority players first
       const playerToSwapOut = initialPlayers[i];
       for (const replacementPlayer of remainingPlayers) {
-          // Skip players who have waited much longer
-          if ((replacementPlayer.availableSince || 0) < (playerToSwapOut.availableSince || 0) - MAX_WAIT_TIME_DIFF_MS) continue;
+          // Rule 4.1: player being swapped must not have waited more than 10 mins longer
+          if ((replacementPlayer.availableSince || 0) < (playerToSwapOut.availableSince || 0) - MAX_WAIT_TIME_DIFF_MS) {
+              continue;
+          }
 
           const potentialGroup = [...initialPlayers];
           potentialGroup[i] = replacementPlayer;
@@ -259,7 +263,7 @@ export async function generateBalancedMatch(
           const potentialMatchup = findBestMatchup(potentialGroup, histories);
           
           if (potentialMatchup && potentialMatchup.issues.length === 0 && potentialMatchup.diff <= 1) {
-               explanation = `Swapped '${playerToSwapOut.name}' with '${replacementPlayer.name}' to achieve a valid and more balanced match (skill diff: ${potentialMatchup.diff}). Players considered: ${potentialGroup.map(p => p.name).join(', ')}.`;
+               explanation = `Swapped '${playerToSwapOut.name}' with '${replacementPlayer.name}' to achieve a valid and more balanced match (skill diff: ${potentialMatchup.diff}). New group: ${potentialGroup.map(p => p.name).join(', ')}.`;
                return { ...potentialMatchup, explanation, issues: potentialMatchup.issues };
           }
       }
@@ -268,9 +272,9 @@ export async function generateBalancedMatch(
   // 5. If no "perfect" swap was found, return the best matchup from the initial group.
   if (bestMatchup) {
       if (bestMatchup.issues.length > 0) {
-          explanation += `Could not find a perfectly valid match. The selected option violates ${bestMatchup.issues.length} rule(s) but is the most balanced choice (skill diff: ${bestMatchup.diff}).`;
+          explanation += `Could not find a perfectly valid match. The selected option violates ${bestMatchup.issues.length} rule(s) but is the most balanced choice (skill diff: ${bestMatchup.diff}) from the initial group of players.`;
       } else {
-          explanation += `Could not achieve ideal skill balance (diff <= 1) while respecting all rules. Selected the most balanced valid pairing available (skill diff: ${bestMatchup.diff}).`;
+          explanation += `Could not achieve ideal skill balance (diff <= 1) while respecting all rules. Selected the most balanced valid pairing available from the initial group (skill diff: ${bestMatchup.diff}).`;
       }
       return { ...bestMatchup, explanation, issues: bestMatchup.issues };
   }

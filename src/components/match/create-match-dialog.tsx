@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { suggestMatchPairing } from "@/ai/ai-suggested-match-pairing";
+import { suggestMatchPairing } from "@/ai/flows/suggest-match-pairing-flow";
 import type { Court, Player, Match } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Users, Loader2, Star, Shield, Dices, TriangleAlert, Clock } from "lucide-react";
