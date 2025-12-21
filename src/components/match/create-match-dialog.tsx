@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { generateBalancedMatch } from "@/app/actions";
+import { suggestMatchPairing } from "@/ai/ai-suggested-match-pairing";
 import type { Court, Player, Match } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Users, Loader2, Star, Shield, Dices, TriangleAlert, Clock } from "lucide-react";
@@ -27,6 +27,7 @@ type CreateMatchDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
   court: Court;
   availablePlayers: Player[];
+  allMatches: Match[];
   onMatchCreate: (newMatch: Omit<Match, "id" | "status" | "scoreA" | "scoreB" | "shuttlecocksUsed">) => void;
 };
 
@@ -165,11 +166,12 @@ export function CreateMatchDialog({
   onOpenChange,
   court,
   availablePlayers,
+  allMatches,
   onMatchCreate,
 }: CreateMatchDialogProps) {
   const [teamA, setTeamA] = useState<Player[]>([]);
   const [teamB, setTeamB] = useState<Player[]>([]);
-  const [generatedMatch, setGeneratedMatch] = useState<{ teamA: Player[], teamB: Player[], explanation: string } | null>(null);
+  const [generatedMatch, setGeneratedMatch] = useState<{ teamA: Player[], teamB: Player[], explanation: string, issues?: string[] } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
@@ -196,14 +198,14 @@ export function CreateMatchDialog({
     resetState();
   };
 
-  const handleRandomGenerate = async () => {
+  const handleSuggestionGenerate = async () => {
     setIsGenerating(true);
     setGeneratedMatch(null);
     try {
       if (!availablePlayers || availablePlayers.length < 4) {
         throw new Error("Not enough available players to generate a match.");
       }
-      const result = await generateBalancedMatch(availablePlayers);
+      const result = await suggestMatchPairing({ availablePlayers, previousMatches: allMatches });
       setGeneratedMatch(result);
     } catch (error) {
         console.error(error);
@@ -239,22 +241,22 @@ export function CreateMatchDialog({
         <DialogHeader>
           <DialogTitle>Create Match on {court.name}</DialogTitle>
           <DialogDescription>
-            Use random generation for a balanced match or assemble teams manually.
+            Use suggestion for a balanced match or assemble teams manually.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[70vh] pr-6">
-          <Tabs defaultValue="random" className="w-full">
+          <Tabs defaultValue="suggest" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="random"><Dices className="mr-2 h-4 w-4"/>Suggest</TabsTrigger>
+              <TabsTrigger value="suggest"><Dices className="mr-2 h-4 w-4"/>Suggest</TabsTrigger>
               <TabsTrigger value="manual"><Users className="mr-2 h-4 w-4"/>Manual</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="random" className="mt-4">
+            <TabsContent value="suggest" className="mt-4">
               <div className="space-y-4 text-center">
                   <p className="text-sm text-muted-foreground">
-                      Let us suggest a balanced match based on player skill and wait time.
+                      Let us suggest a balanced match based on skill, wait time and play history.
                   </p>
-                  <Button onClick={handleRandomGenerate} disabled={isGenerating || availablePlayers.length < 4}>
+                  <Button onClick={handleSuggestionGenerate} disabled={isGenerating || availablePlayers.length < 4}>
                       {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       {isGenerating ? "Generating..." : "Suggest Match"}
                   </Button>
@@ -274,6 +276,21 @@ export function CreateMatchDialog({
                                   <p className="text-xs font-bold text-center mt-2 flex items-center justify-center gap-1">{teamSkillLevel(generatedMatch.teamB)} <Star className="h-3 w-3 text-yellow-400"/></p>
                               </div>
                           </div>
+                          
+                          {generatedMatch.issues && generatedMatch.issues.length > 0 && (
+                            <Alert variant="destructive">
+                                <TriangleAlert className="h-4 w-4" />
+                                <AlertTitle>Rule Violations</AlertTitle>
+                                <AlertDescription>
+                                    <ul className="list-disc pl-5">
+                                        {generatedMatch.issues.map((issue, index) => (
+                                            <li key={index}>{issue}</li>
+                                        ))}
+                                    </ul>
+                                </AlertDescription>
+                            </Alert>
+                          )}
+
                           <Alert>
                               <Info className="h-4 w-4" />
                               <AlertTitle>Explanation</AlertTitle>

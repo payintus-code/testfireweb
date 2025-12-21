@@ -11,19 +11,41 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { generateBalancedMatch } from '@/app/actions';
+import type { Match, Player } from '@/lib/types';
+
 
 const PlayerSchema = z.object({
+  id: z.string(),
   name: z.string().describe('The name of the player.'),
   skillLevel: z.number().describe('The skill level of the player (e.g., 1-10).'),
   age: z.number().describe('The age of the player.'),
   gender: z.string().describe('The gender of the player.'),
+  status: z.enum(['available', 'in-match', 'unavailable']),
+  avatarUrl: z.string(),
+  availableSince: z.number().optional(),
+  matchesPlayed: z.number(),
+  avoidPlayers: z.array(z.string()).optional(),
 });
 
-export type Player = z.infer<typeof PlayerSchema>;
+
+const MatchSchema = z.object({
+    id: z.string(),
+    courtId: z.number(),
+    teamA: z.array(PlayerSchema),
+    teamB: z.array(PlayerSchema),
+    scoreA: z.number(),
+    scoreB: z.number(),
+    status: z.enum(['scheduled', 'in-progress', 'completed', 'cancelled']),
+    startTime: z.number().optional(),
+    endTime: z.number().optional(),
+    shuttlecocksUsed: z.number(),
+});
+
 
 const SuggestMatchPairingInputSchema = z.object({
   availablePlayers: z.array(PlayerSchema).describe('The list of available players for the match.'),
-  previousMatches: z.array(z.array(PlayerSchema)).describe('The list of previous matches played today.'),
+  previousMatches: z.array(MatchSchema).describe('The list of previous matches played today.'),
 });
 export type SuggestMatchPairingInput = z.infer<typeof SuggestMatchPairingInputSchema>;
 
@@ -33,9 +55,10 @@ const SuggestedTeamSchema = z.object({
 });
 
 const SuggestMatchPairingOutputSchema = z.object({
-  team1: SuggestedTeamSchema.describe('The first team.'),
-  team2: SuggestedTeamSchema.describe('The second team.'),
+  teamA: z.array(PlayerSchema),
+  teamB: z.array(PlayerSchema),
   explanation: z.string().describe('Explanation of how the teams were selected.'),
+  issues: z.array(z.string()).optional().describe('An array of any broken rules or warnings.'),
 });
 export type SuggestMatchPairingOutput = z.infer<typeof SuggestMatchPairingOutputSchema>;
 
@@ -43,39 +66,6 @@ export async function suggestMatchPairing(input: SuggestMatchPairingInput): Prom
   return suggestMatchPairingFlow(input);
 }
 
-const suggestMatchPairingPrompt = ai.definePrompt({
-  name: 'suggestMatchPairingPrompt',
-  model: 'gemini-1.5-flash-latest',
-  input: {
-    schema: SuggestMatchPairingInputSchema,
-  },
-  output: {
-    schema: SuggestMatchPairingOutputSchema,
-  },
-  prompt: `You are an AI tournament organizer assistant. Your task is to suggest balanced match pairings for a badminton tournament.
-
-You will receive a list of available players with their skill levels, ages and genders, and a list of previous matches played today.
-
-Your goal is to create two teams of two players each, ensuring the teams are as balanced as possible in terms of skill level. The difference between the two teams' combined skill levels should be minimized, ideally 0 or 1. You should choose from ALL available players to find the most balanced match.
-
-Available Players:
-{{#each availablePlayers}}
-- Name: {{this.name}}, Skill: {{this.skillLevel}}, Age: {{this.age}}, Gender: {{this.gender}}
-{{/each}}
-
-Previous Matches:
-{{#each previousMatches}}
-  - Team 1:
-    {{#each this}}
-      - Name: {{this.name}}, Skill: {{this.skillLevel}}
-    {{/each}}
-  {{/each}}
-
-
-
-Suggest two teams, provide an explanation of how they were selected, and include the combined team skill level for each team. The output MUST adhere to the json schema. Make sure the teams each have exactly two players.
-`,
-});
 
 const suggestMatchPairingFlow = ai.defineFlow(
   {
@@ -83,8 +73,19 @@ const suggestMatchPairingFlow = ai.defineFlow(
     inputSchema: SuggestMatchPairingInputSchema,
     outputSchema: SuggestMatchPairingOutputSchema,
   },
-  async input => {
-    const {output} = await suggestMatchPairingPrompt(input);
-    return output!;
+  async ({ availablePlayers, previousMatches }) => {
+    
+    const result = await generateBalancedMatch(availablePlayers as Player[], previousMatches as Match[]);
+
+    if (!result) {
+        throw new Error("Could not generate a match.");
+    }
+    
+    return {
+        teamA: result.teamA,
+        teamB: result.teamB,
+        explanation: result.explanation,
+        issues: result.issues
+    };
   }
 );

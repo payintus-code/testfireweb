@@ -108,7 +108,7 @@ export default function Home() {
       shuttlecocksUsed: 1,
     };
     
-    const isFirstMatch = matches.length === 0;
+    const isFirstMatch = matches.filter(m => m.status !== 'cancelled').length === 0;
     const now = Date.now();
 
     setMatches(prev => [...prev, matchWithId]);
@@ -204,6 +204,7 @@ export default function Home() {
           onOpenChange={setDialogOpen}
           court={selectedCourt}
           availablePlayers={availablePlayers}
+          allMatches={matches}
           onMatchCreate={handleMatchCreate}
         />
       )}
