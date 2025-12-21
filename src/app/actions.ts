@@ -19,7 +19,7 @@ type History = {
 
 type PlayerHistories = Record<string, History>;
 
-function buildPlayerHistories(matches: Match[]): PlayerHistories {
+function buildPlayerHistories(matches: Match[], allPlayers: Player[]): PlayerHistories {
     const histories: PlayerHistories = {};
 
     const ensureHistory = (playerId: string) => {
@@ -34,9 +34,8 @@ function buildPlayerHistories(matches: Match[]): PlayerHistories {
         }
     };
     
-    // Ensure all players have a history entry initialized
-    const allPlayerIdsInMatches = new Set(matches.flatMap(m => [...m.teamA.map(p => p.id), ...m.teamB.map(p => p.id)]));
-    allPlayerIdsInMatches.forEach(id => ensureHistory(id));
+    // Ensure all players (even those who haven't played) have a history entry initialized
+    allPlayers.forEach(p => ensureHistory(p.id));
 
 
     // Sort matches by end time to correctly determine the last match
@@ -75,16 +74,17 @@ function buildPlayerHistories(matches: Match[]): PlayerHistories {
         }
         
         // Check for light games
+        const teamASkillSum = match.teamA.reduce((sum, p) => sum + p.skillLevel, 0);
+        const teamBSkillSum = match.teamB.reduce((sum, p) => sum + p.skillLevel, 0);
+        const avgSkillA = teamASkillSum / match.teamA.length;
+        const avgSkillB = teamBSkillSum / match.teamB.length;
+
         for (const player of allPlayersInMatch) {
-            let isLightGame = false;
-            for (const otherPlayer of allPlayersInMatch) {
-                if (player.id !== otherPlayer.id && player.skillLevel >= otherPlayer.skillLevel + SKILL_DIFF_FOR_LIGHT_GAME) {
-                    isLightGame = true;
-                    break;
-                }
-            }
-            if (isLightGame) {
-                histories[player.id].lightGames += 1;
+            const playerTeamAvg = match.teamA.some(p => p.id === player.id) ? avgSkillA : avgSkillB;
+            const opponentTeamAvg = match.teamA.some(p => p.id === player.id) ? avgSkillB : avgSkillA;
+
+            if (player.skillLevel >= opponentTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME || player.skillLevel >= playerTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME) {
+                 histories[player.id].lightGames += 1;
             }
         }
     }
@@ -94,11 +94,13 @@ function buildPlayerHistories(matches: Match[]): PlayerHistories {
         const lastMatch = playerLastMatch[playerId];
         const playerIsOnTeamA = lastMatch.teamA.some(p => p.id === playerId);
         
-        histories[playerId].lastTeammates = (playerIsOnTeamA ? lastMatch.teamA : lastMatch.teamB)
-          .filter(p => p.id !== playerId)
-          .map(p => p.id);
-        histories[playerId].lastOpponents = (playerIsOnTeamA ? lastMatch.teamB : lastMatch.teamA)
-          .map(p => p.id);
+        if (histories[playerId]) {
+            histories[playerId].lastTeammates = (playerIsOnTeamA ? lastMatch.teamA : lastMatch.teamB)
+              .filter(p => p.id !== playerId)
+              .map(p => p.id);
+            histories[playerId].lastOpponents = (playerIsOnTeamA ? lastMatch.teamB : lastMatch.teamA)
+              .map(p => p.id);
+        }
     }
 
     return histories;
@@ -141,17 +143,17 @@ function checkPairingConstraints(
         }
 
         // Check light game constraints
-        let isLightGame = false;
-        for (const otherPlayer of playersInMatch) {
-            if (player.id !== otherPlayer.id && player.skillLevel >= otherPlayer.skillLevel + SKILL_DIFF_FOR_LIGHT_GAME) {
-                isLightGame = true;
-                break;
-            }
-        }
+        const teamASkillSum = teamA.reduce((sum, p) => sum + p.skillLevel, 0);
+        const teamBSkillSum = teamB.reduce((sum, p) => sum + p.skillLevel, 0);
+        const avgSkillA = teamASkillSum / teamA.length;
+        const avgSkillB = teamBSkillSum / teamB.length;
+        const playerTeamAvg = teamA.some(p => p.id === player.id) ? avgSkillA : avgSkillB;
+        const opponentTeamAvg = teamA.some(p => p.id === player.id) ? avgSkillB : avgSkillA;
 
-        if (isLightGame && history.lightGames >= MAX_LIGHT_GAMES) {
+        if ((player.skillLevel >= opponentTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME || player.skillLevel >= playerTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME) && history.lightGames >= MAX_LIGHT_GAMES) {
             issues.push(`${player.name} would be playing a 3rd light game.`);
         }
+
 
         // Check avoid list constraint
         const avoidIds = player.avoidPlayers || [];
@@ -231,7 +233,7 @@ export async function generateBalancedMatch(
     throw new Error("Not enough players to generate a match.");
   }
 
-  const histories = buildPlayerHistories(previousMatches);
+  const histories = buildPlayerHistories(previousMatches, availablePlayers);
 
   // 1 & 2: Sort by matches played, then by wait time
   const sortedPlayers = [...availablePlayers].sort((a, b) => {
@@ -263,7 +265,7 @@ export async function generateBalancedMatch(
       const playerToSwapOut = initialPlayers[i];
       for (const replacementPlayer of remainingPlayers) {
           // Rule 4.1: player being swapped must not have waited more than 10 mins longer
-          if ((replacementPlayer.availableSince || 0) < (playerToSwapOut.availableSince || 0) - MAX_WAIT_TIME_DIFF_MS) {
+          if ((replacementPlayer.availableSince || 0) > (playerToSwapOut.availableSince || 0) + MAX_WAIT_TIME_DIFF_MS) {
               continue;
           }
 
