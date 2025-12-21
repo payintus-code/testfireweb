@@ -298,7 +298,6 @@ export function CreateMatchDialog({
                                   {generatedMatch.explanation}
                               </AlertDescription>
                           </Alert>
-                           <AvoidanceWarnings teamA={generatedMatch.teamA} teamB={generatedMatch.teamB} />
                           <DialogFooter className="mt-4">
                               <Button onClick={handleGeneratedCreate}>Schedule This Match</Button>
                           </DialogFooter>

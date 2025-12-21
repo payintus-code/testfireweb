@@ -152,6 +152,16 @@ function checkPairingConstraints(
         if (isLightGame && history.lightGames >= MAX_LIGHT_GAMES) {
             issues.push(`${player.name} would be playing a 3rd light game.`);
         }
+
+        // Check avoid list constraint
+        const avoidIds = player.avoidPlayers || [];
+        if (avoidIds.length > 0) {
+            for (const otherPlayer of playersInMatch) {
+                if (player.id !== otherPlayer.id && avoidIds.includes(otherPlayer.id)) {
+                    issues.push(`${player.name} wants to avoid ${otherPlayer.name}.`);
+                }
+            }
+        }
     }
     
     return { isValid: issues.length === 0, issues };
