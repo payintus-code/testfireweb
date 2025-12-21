@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -63,7 +64,7 @@ export default function SummaryPage() {
   }, []);
   
   const handleClearHistory = () => {
-    // Clear only completed matches from display and from localStorage
+    // Clear completed matches from localStorage
     const storedMatches = localStorage.getItem("matches");
     if (storedMatches) {
         const allMatches: Match[] = JSON.parse(storedMatches);
@@ -71,6 +72,14 @@ export default function SummaryPage() {
         localStorage.setItem('matches', JSON.stringify(ongoingMatches));
     }
     setCompletedMatches([]);
+
+    // Reset matchesPlayed for all players
+    const storedPlayers = localStorage.getItem("players");
+    if (storedPlayers) {
+        const players: Player[] = JSON.parse(storedPlayers);
+        const updatedPlayers = players.map(p => ({ ...p, matchesPlayed: 0 }));
+        localStorage.setItem('players', JSON.stringify(updatedPlayers));
+    }
   };
 
   const getDuration = (match: Match) => {
