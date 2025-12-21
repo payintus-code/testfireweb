@@ -80,10 +80,8 @@ function buildPlayerHistories(matches: Match[], allPlayers: Player[]): PlayerHis
         const avgSkillB = teamBSkillSum / match.teamB.length;
 
         for (const player of allPlayersInMatch) {
-            const playerTeamAvg = match.teamA.some(p => p.id === player.id) ? avgSkillA : avgSkillB;
             const opponentTeamAvg = match.teamA.some(p => p.id === player.id) ? avgSkillB : avgSkillA;
-
-            if (player.skillLevel >= opponentTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME || player.skillLevel >= playerTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME) {
+            if (player.skillLevel >= opponentTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME) {
                  histories[player.id].lightGames += 1;
             }
         }
@@ -147,10 +145,9 @@ function checkPairingConstraints(
         const teamBSkillSum = teamB.reduce((sum, p) => sum + p.skillLevel, 0);
         const avgSkillA = teamASkillSum / teamA.length;
         const avgSkillB = teamBSkillSum / teamB.length;
-        const playerTeamAvg = teamA.some(p => p.id === player.id) ? avgSkillA : avgSkillB;
         const opponentTeamAvg = teamA.some(p => p.id === player.id) ? avgSkillB : avgSkillA;
 
-        if ((player.skillLevel >= opponentTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME || player.skillLevel >= playerTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME) && history.lightGames >= MAX_LIGHT_GAMES) {
+        if (player.skillLevel >= opponentTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME && history.lightGames >= MAX_LIGHT_GAMES) {
             issues.push(`${player.name} would be playing a 3rd light game.`);
         }
 
