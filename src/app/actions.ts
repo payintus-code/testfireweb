@@ -246,13 +246,13 @@ export async function generateBalancedMatch(
     return (a.availableSince || 0) - (b.availableSince || 0);
   });
   
-  const initialPlayers = sortedPlayers.slice(0, 4);
+  let currentPlayers = sortedPlayers.slice(0, 4);
   const remainingPlayers = sortedPlayers.slice(4);
 
   // 3. Find the best possible match with the top 4 players based on Priority 3 (history) and 4 (skill)
-  let bestMatchup = findBestMatchup(initialPlayers, histories);
+  let bestMatchup = findBestMatchup(currentPlayers, histories);
   
-  let explanation = `Selected top 4 players based on play count and wait time: ${initialPlayers.map(p => p.name).join(', ')}. `;
+  let explanation = `Selected top 4 players based on play count and wait time: ${currentPlayers.map(p => p.name).join(', ')}. `;
 
   // If the best match with the initial group is perfect (no issues, diff <= 1), we can consider it
   if (bestMatchup && bestMatchup.issues.length === 0 && bestMatchup.diff <= 1) {
@@ -260,20 +260,26 @@ export async function generateBalancedMatch(
       return { ...bestMatchup, explanation, issues: bestMatchup.issues };
   }
 
-  // 4. If not ideal, try swapping players to find a "perfect" match (no issues, diff <=1)
-  for (let i = 3; i >= 0; i--) { // Iterate backwards to swap out lowest priority players first
-      const playerToSwapOut = initialPlayers[i];
+  // 4 & 5. If not ideal, try swapping players to find a "perfect" match (no issues, diff <=1)
+  // This is a more complex iterative swapping logic.
+  for (let i = 0; i < currentPlayers.length; i++) { // Iterate through each position in the current group
+      const playerToSwapOut = currentPlayers[i];
       for (const replacementPlayer of remainingPlayers) {
+           // Skip if this replacement has already been part of a considered group to avoid cycles
+          if (currentPlayers.some(p => p.id === replacementPlayer.id)) continue;
+        
           // Priority 5: player being swapped must not have waited more than 10 mins longer
           if ((replacementPlayer.availableSince || 0) > (playerToSwapOut.availableSince || 0) + MAX_WAIT_TIME_DIFF_MS) {
               continue;
           }
-
-          const potentialGroup = [...initialPlayers];
+          
+          // Create a new potential group
+          const potentialGroup = [...currentPlayers];
           potentialGroup[i] = replacementPlayer;
 
           const potentialMatchup = findBestMatchup(potentialGroup, histories);
           
+          // Check if this new matchup is "perfect"
           if (potentialMatchup && potentialMatchup.issues.length === 0 && potentialMatchup.diff <= 1) {
                explanation = `Swapped '${playerToSwapOut.name}' with '${replacementPlayer.name}' to achieve a valid and perfectly balanced match (skill diff: ${potentialMatchup.diff}). New group: ${potentialGroup.map(p => p.name).join(', ')}.`;
                return { ...potentialMatchup, explanation, issues: potentialMatchup.issues };
@@ -281,12 +287,13 @@ export async function generateBalancedMatch(
       }
   }
 
+
   // 6. If no "perfect" swap was found, return the best matchup from the initial group.
   if (bestMatchup) {
       if (bestMatchup.issues.length > 0) {
-          explanation += `Could not find a perfectly valid match. The selected option is the best choice from the initial priority group, but violates ${bestMatchup.issues.length} history rule(s). It's the most balanced choice (skill diff: ${bestMatchup.diff}) among the possibilities.`;
+          explanation += `Could not find a perfectly valid match after trying swaps. The selected option is the best choice from the initial priority group, but violates ${bestMatchup.issues.length} history rule(s). It's the most balanced choice (skill diff: ${bestMatchup.diff}) among the possibilities.`;
       } else {
-          explanation += `Could not achieve ideal skill balance (diff <= 1) while respecting all history rules. This is the most balanced valid pairing available from the initial priority group (skill diff: ${bestMatchup.diff}).`;
+          explanation += `Could not achieve ideal skill balance (diff <= 1) while respecting all history rules, even after trying swaps. This is the most balanced valid pairing available from the initial priority group (skill diff: ${bestMatchup.diff}).`;
       }
       return { ...bestMatchup, explanation, issues: bestMatchup.issues };
   }
@@ -294,3 +301,5 @@ export async function generateBalancedMatch(
   // This should be unreachable if there are >= 4 players
   throw new Error("Could not generate any possible match configuration.");
 }
+
+    
