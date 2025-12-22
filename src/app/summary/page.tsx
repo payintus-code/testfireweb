@@ -18,10 +18,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Trophy, Clock } from "lucide-react";
+import { Trophy, Clock, UserSearch } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ShuttlecockIcon } from "@/components/icons/shuttlecock-icon";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+
 
 const TeamDisplay = ({ team }: { team: Player[] }) => (
   <div className="flex items-center gap-2">
@@ -52,6 +61,8 @@ const formatDuration = (totalSeconds: number) => {
 
 export default function SummaryPage() {
   const [completedMatches, setCompletedMatches] = useState<Match[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -60,6 +71,12 @@ export default function SummaryPage() {
       const allMatches: Match[] = JSON.parse(storedMatches);
       setCompletedMatches(allMatches.filter((m) => m.status === "completed"));
     }
+
+    const storedPlayers = localStorage.getItem("players");
+    if (storedPlayers) {
+        setPlayers(JSON.parse(storedPlayers));
+    }
+
     setIsMounted(true);
   }, []);
   
@@ -72,6 +89,7 @@ export default function SummaryPage() {
         localStorage.setItem('matches', JSON.stringify(ongoingMatches));
     }
     setCompletedMatches([]);
+    setSelectedPlayerId(null);
 
     // Reset matchesPlayed for all players
     const storedPlayers = localStorage.getItem("players");
@@ -79,6 +97,7 @@ export default function SummaryPage() {
         const players: Player[] = JSON.parse(storedPlayers);
         const updatedPlayers = players.map(p => ({ ...p, matchesPlayed: 0 }));
         localStorage.setItem('players', JSON.stringify(updatedPlayers));
+        setPlayers(updatedPlayers);
     }
   };
 
@@ -88,7 +107,33 @@ export default function SummaryPage() {
       return formatDuration(durationSeconds);
     }
     return "-";
-  }
+  };
+
+  const filteredMatches = selectedPlayerId
+    ? completedMatches.filter(match => 
+        match.teamA.some(p => p.id === selectedPlayerId) || 
+        match.teamB.some(p => p.id === selectedPlayerId)
+      )
+    : completedMatches;
+
+  const getPlayerResult = (match: Match, playerId: string | null) => {
+      if (!playerId) return { result: 'neutral', score: ''};
+      
+      const isOnTeamA = match.teamA.some(p => p.id === playerId);
+      const isOnTeamB = match.teamB.some(p => p.id === playerId);
+
+      if (!isOnTeamA && !isOnTeamB) return { result: 'neutral', score: ''};
+
+      const teamAWon = match.scoreA > match.scoreB;
+      const finalScore = `${match.scoreA} - ${match.scoreB}`;
+
+      if ((isOnTeamA && teamAWon) || (isOnTeamB && !teamAWon)) {
+          return { result: 'win', score: finalScore };
+      } else {
+          return { result: 'loss', score: finalScore };
+      }
+  };
+
 
   if (!isMounted) {
     return (
@@ -101,21 +146,35 @@ export default function SummaryPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold">Daily Match Summary</h1>
-        <Button variant="outline" onClick={handleClearHistory} disabled={completedMatches.length === 0}>
-            Clear History
-        </Button>
+        <div className="flex items-center gap-2">
+            <Select onValueChange={(value) => setSelectedPlayerId(value === "all" ? null : value)} value={selectedPlayerId || "all"}>
+                <SelectTrigger className="w-[180px]">
+                    <UserSearch className="w-4 h-4 mr-2"/>
+                    <SelectValue placeholder="Select a player" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Players</SelectItem>
+                    {players.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={handleClearHistory} disabled={completedMatches.length === 0}>
+                Clear History
+            </Button>
+        </div>
       </div>
       <Card>
         <CardHeader>
           <CardTitle>Completed Matches</CardTitle>
           <CardDescription>
-            A log of all matches played today.
+            {selectedPlayerId ? `A log of matches played by ${players.find(p => p.id === selectedPlayerId)?.name || ''}.` : 'A log of all matches played today.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {completedMatches.length > 0 ? (
+          {filteredMatches.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -128,34 +187,41 @@ export default function SummaryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {completedMatches.map((match) => (
-                  <TableRow key={match.id}>
-                    <TableCell className="font-medium">
-                      Court {match.courtId}
-                    </TableCell>
-                    <TableCell>
-                      <TeamDisplay team={match.teamA} />
-                    </TableCell>
-                    <TableCell>
-                      <TeamDisplay team={match.teamB} />
-                    </TableCell>
-                     <TableCell>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="w-4 h-4"/>
-                        <span>{getDuration(match)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <ShuttlecockIcon className="w-4 h-4"/>
-                        <span>{match.shuttlecocksUsed || 0}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-semibold">
-                      {match.scoreA} - {match.scoreB}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredMatches.map((match) => {
+                  const { result, score } = getPlayerResult(match, selectedPlayerId);
+                  return (
+                      <TableRow key={match.id}>
+                        <TableCell className="font-medium">
+                          Court {match.courtId}
+                        </TableCell>
+                        <TableCell>
+                          <TeamDisplay team={match.teamA} />
+                        </TableCell>
+                        <TableCell>
+                          <TeamDisplay team={match.teamB} />
+                        </TableCell>
+                         <TableCell>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Clock className="w-4 h-4"/>
+                            <span>{getDuration(match)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <ShuttlecockIcon className="w-4 h-4"/>
+                            <span>{match.shuttlecocksUsed || 0}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className={cn(
+                            "text-right font-mono font-semibold",
+                            result === 'win' && 'text-green-600',
+                            result === 'loss' && 'text-red-600'
+                        )}>
+                          {score}
+                        </TableCell>
+                      </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
@@ -163,7 +229,7 @@ export default function SummaryPage() {
               <Trophy className="w-12 h-12 mb-4" />
               <p className="font-semibold">No matches completed yet.</p>
               <p className="text-sm">
-                Completed matches will appear here.
+                {selectedPlayerId ? "This player hasn't completed any matches." : "Completed matches will appear here."}
               </p>
             </div>
           )}
