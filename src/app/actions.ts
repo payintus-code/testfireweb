@@ -78,10 +78,13 @@ function buildPlayerHistories(matches: Match[], allPlayers: Player[]): PlayerHis
         const avgSkillB = teamBSkillSum / match.teamB.length;
 
         for (const player of allPlayersInMatch) {
+            const playerInHistory = histories[player.id];
+            if (!playerInHistory) continue;
+
             const isPlayerOnTeamA = match.teamA.some(p => p.id === player.id);
             const opponentTeamAvg = isPlayerOnTeamA ? avgSkillB : avgSkillA;
             if (player.skillLevel >= opponentTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME) {
-                 histories[player.id].lightGames += 1;
+                 playerInHistory.lightGames += 1;
             }
         }
     }
@@ -227,8 +230,8 @@ export async function generateBalancedMatch(
   previousMatches: Match[]
 ): Promise<{ teamA: Player[]; teamB: Player[]; explanation: string, issues: string[] } | null> {
   
-  if (availablePlayers.length === 0) {
-    throw new Error("No players available to generate a match.");
+  if (availablePlayers.length < 4) {
+    throw new Error("Not enough players available to generate a match.");
   }
   
   const minRoundsPlayed = Math.min(...availablePlayers.map(p => p.matchesPlayed || 0));
@@ -284,4 +287,6 @@ export async function generateBalancedMatch(
   // This should be unreachable if there are >= 4 players
   throw new Error("Could not generate any possible match configuration. This might happen if player constraints are too restrictive.");
 }
+    
+
     
