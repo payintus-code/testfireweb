@@ -162,20 +162,30 @@ function checkPairingConstraints(
     return { isValid: issues.length === 0, issues };
 }
 
-function getCombinations<T>(array: T[], size: number): T[][] {
-    const result: T[][] = [];
-    function backtrack(startIndex: number, currentCombination: T[]) {
-        if (currentCombination.length === size) {
-            result.push([...currentCombination]);
-            return;
-        }
-        for (let i = startIndex; i < array.length; i++) {
-            currentCombination.push(array[i]);
-            backtrack(i + 1, currentCombination);
-            currentCombination.pop();
+function getCombinations(array: Player[], size: number): Player[][] {
+    const result: Player[][] = [];
+    const n = array.length;
+    if (size > n) return result;
+
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            if (size === 2) {
+                result.push([array[i], array[j]]);
+            } else {
+                for (let k = j + 1; k < n; k++) {
+                    if (size === 3) {
+                         result.push([array[i], array[j], array[k]]);
+                    } else {
+                        for (let l = k + 1; l < n; l++) {
+                             if (size === 4) {
+                                result.push([array[i], array[j], array[k], array[l]]);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
-    backtrack(0, []);
     return result;
 }
 
@@ -232,13 +242,37 @@ export async function generateBalancedMatch(
     throw new Error(`Not enough eligible players to generate a match. Found ${eligiblePlayers.length} players within the ${MAX_ROUNDS_DIFFERENCE} round limit.`);
   }
 
-  const histories = buildPlayerHistories(previousMatches, eligiblePlayers);
+  // Sort eligible players by priority: matches played (asc), then wait time (asc)
+  const sortedEligiblePlayers = [...eligiblePlayers].sort((a, b) => {
+    const matchesDiff = (a.matchesPlayed || 0) - (b.matchesPlayed || 0);
+    if (matchesDiff !== 0) return matchesDiff;
+    return (a.availableSince || 0) - (b.availableSince || 0);
+  });
 
-  // Create all possible groups of 4 players
-  const allPlayerGroups = getCombinations(eligiblePlayers, 4);
+  const histories = buildPlayerHistories(previousMatches, sortedEligiblePlayers);
+
+  // Create all possible groups of 4 players from the sorted list
+  const allPlayerGroups: Player[][] = [];
+  const n = sortedEligiblePlayers.length;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      for (let k = j + 1; k < n; k++) {
+        for (let l = k + 1; l < n; l++) {
+          allPlayerGroups.push([
+            sortedEligiblePlayers[i],
+            sortedEligiblePlayers[j],
+            sortedEligiblePlayers[k],
+            sortedEligiblePlayers[l],
+          ]);
+        }
+      }
+    }
+  }
+
 
   let bestFoundMatchup: Matchup | null = null;
 
+  // Find the best possible matchup from the highest priority players first
   for (const group of allPlayerGroups) {
     const matchup = findBestMatchup(group, histories);
 
