@@ -257,7 +257,7 @@ export default function CourtCard({
             </Button>
           )}
           {match.status === 'in-progress' && (
-            <Button variant="default" size="sm" onClick={() => setEndMatchDialogOpen(true)}>
+            <Button variant="destructive" size="sm" onClick={() => setEndMatchDialogOpen(true)}>
                 <Flag className="mr-2 h-4 w-4" /> End Match
             </Button>
           )}
