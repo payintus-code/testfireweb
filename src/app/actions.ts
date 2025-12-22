@@ -83,6 +83,7 @@ function buildPlayerHistories(matches: Match[], allPlayers: Player[]): PlayerHis
 
             const isPlayerOnTeamA = match.teamA.some(p => p.id === player.id);
             const opponentTeamAvg = isPlayerOnTeamA ? avgSkillB : avgSkillA;
+            
             if (player.skillLevel >= opponentTeamAvg + SKILL_DIFF_FOR_LIGHT_GAME) {
                  playerInHistory.lightGames += 1;
             }
@@ -195,6 +196,7 @@ function findBestMatchup(
     const getTeamSkill = (team: Player[]) => team.reduce((acc, p) => acc + p.skillLevel, 0);
 
     const matchups: Matchup[] = [];
+    // there are 3 possible pairings for 4 players
     for (let i = 0; i < pairings.length / 2; i++) {
         const teamA = pairings[i];
         const teamB = fourPlayers.filter(p => !teamA.includes(p));
@@ -209,19 +211,8 @@ function findBestMatchup(
         });
     }
     
+    // Sort by fewest issues, then by smallest skill difference
     return matchups.sort((a, b) => a.issues.length - b.issues.length || a.diff - b.diff)[0];
-}
-
-
-// Fisher-Yates shuffle algorithm
-function shuffle<T>(array: T[]): T[] {
-    let currentIndex = array.length, randomIndex;
-    while (currentIndex !== 0) {
-        randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex--;
-        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-    }
-    return array;
 }
 
 
@@ -246,12 +237,9 @@ export async function generateBalancedMatch(
   // Create all possible groups of 4 players
   const allPlayerGroups = getCombinations(eligiblePlayers, 4);
 
-  // Shuffle the groups to randomize the search order
-  const shuffledPlayerGroups = shuffle(allPlayerGroups);
-  
   let bestFoundMatchup: Matchup | null = null;
 
-  for (const group of shuffledPlayerGroups) {
+  for (const group of allPlayerGroups) {
     const matchup = findBestMatchup(group, histories);
 
     if (matchup) {
