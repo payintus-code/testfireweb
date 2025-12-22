@@ -117,21 +117,29 @@ export default function SummaryPage() {
     : completedMatches;
 
   const getPlayerResult = (match: Match, playerId: string | null) => {
-      if (!playerId) return { result: 'neutral', score: ''};
+    const finalScore = `${match.scoreA} - ${match.scoreB}`;
+    
+    if (!playerId) {
+        return { result: 'neutral', score: finalScore };
+    }
       
-      const isOnTeamA = match.teamA.some(p => p.id === playerId);
-      const isOnTeamB = match.teamB.some(p => p.id === playerId);
+    const isOnTeamA = match.teamA.some(p => p.id === playerId);
+    const isOnTeamB = match.teamB.some(p => p.id === playerId);
 
-      if (!isOnTeamA && !isOnTeamB) return { result: 'neutral', score: ''};
+    if (!isOnTeamA && !isOnTeamB) {
+        // This case should ideally not happen if matches are filtered correctly
+        return { result: 'neutral', score: finalScore };
+    }
 
-      const teamAWon = match.scoreA > match.scoreB;
-      const finalScore = `${match.scoreA} - ${match.scoreB}`;
+    const teamAWon = match.scoreA > match.scoreB;
 
-      if ((isOnTeamA && teamAWon) || (isOnTeamB && !teamAWon)) {
-          return { result: 'win', score: finalScore };
-      } else {
-          return { result: 'loss', score: finalScore };
-      }
+    if ((isOnTeamA && teamAWon) || (isOnTeamB && !teamAWon)) {
+        return { result: 'win', score: finalScore };
+    } else if ((isOnTeamA && !teamAWon) || (isOnTeamB && teamAWon)) {
+        return { result: 'loss', score: finalScore };
+    } else { // Draw
+        return { result: 'neutral', score: finalScore };
+    }
   };
 
 
