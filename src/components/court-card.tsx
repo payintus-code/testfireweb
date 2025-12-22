@@ -70,8 +70,10 @@ const EndMatchDialog = ({ match, onUpdateMatch, open, onOpenChange }: { match: M
     }
     
     const handleScoreChange = (setter: (value: number) => void, value: string) => {
-        const newScore = parseInt(value, 10);
+        let newScore = parseInt(value, 10);
         if (isNaN(newScore)) {
+          setter(0);
+        } else if (newScore < 0) {
           setter(0);
         } else {
           setter(newScore);
@@ -293,3 +295,5 @@ export default function CourtCard({
     </Card>
   );
 }
+
+    
