@@ -32,7 +32,7 @@ const formSchema = z.object({
     message: "Age must be a positive number.",
   }),
   gender: z.enum(["Male", "Female", "Other"]),
-  skillLevel: z.number().min(1).max(5),
+  skillLevel: z.coerce.number().min(1, "Skill must be at least 1.").max(5, "Skill must be 5 or less."),
 })
 
 type PlayerFormProps = {
@@ -125,7 +125,17 @@ export function PlayerForm({ onSubmit, player }: PlayerFormProps) {
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <div className="text-center font-bold text-lg w-12">{field.value}</div>
+                  <Input
+                    type="number"
+                    className="w-16 text-center text-lg font-bold"
+                    {...field}
+                    onChange={(e) => {
+                        const value = e.target.value === '' ? 1 : Number(e.target.value);
+                        if (value >= 1 && value <= 5) {
+                            field.onChange(value);
+                        }
+                    }}
+                  />
                   <Button
                     type="button"
                     variant="outline"
