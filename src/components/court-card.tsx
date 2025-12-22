@@ -88,14 +88,20 @@ const EndMatchDialog = ({ match, onUpdateMatch, open, onOpenChange }: { match: M
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="space-y-4 py-4">
-                  <div className="flex items-center justify-center gap-4">
-                      <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-start justify-center gap-4">
+                      <div className="flex flex-col items-center gap-2 text-center">
                           <label htmlFor="scoreA" className="text-sm font-medium">Team A</label>
+                           <div className="text-xs text-muted-foreground">
+                            {match.teamA.map(p => p.name).join(' & ')}
+                          </div>
                           <Input id="scoreA" type="number" value={scoreA || ''} onChange={(e) => handleScoreChange(setScoreA, e.target.value)} className="w-20 text-center text-lg" />
                       </div>
-                      <span className="text-2xl font-bold">-</span>
-                      <div className="flex flex-col items-center gap-2">
+                      <span className="text-2xl font-bold pt-10">-</span>
+                      <div className="flex flex-col items-center gap-2 text-center">
                           <label htmlFor="scoreB" className="text-sm font-medium">Team B</label>
+                          <div className="text-xs text-muted-foreground">
+                            {match.teamB.map(p => p.name).join(' & ')}
+                          </div>
                           <Input id="scoreB" type="number" value={scoreB || ''} onChange={(e) => handleScoreChange(setScoreB, e.target.value)} className="w-20 text-center text-lg" />
                       </div>
                   </div>
