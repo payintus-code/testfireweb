@@ -8,6 +8,8 @@ const MAX_OPPONENT_COUNT = 2;
 const MAX_LIGHT_GAMES = 2;
 const SKILL_DIFF_FOR_LIGHT_GAME = 2;
 const MAX_WAIT_TIME_DIFF_MS = 10 * 60 * 1000; // 10 minutes
+const MAX_ROUNDS_DIFFERENCE = 2;
+
 
 type History = {
     teammates: Record<string, number>;
@@ -225,14 +227,21 @@ export async function generateBalancedMatch(
   previousMatches: Match[]
 ): Promise<{ teamA: Player[]; teamB: Player[]; explanation: string, issues: string[] } | null> {
   
-  if (availablePlayers.length < 4) {
-    throw new Error("Not enough players to generate a match.");
+  if (availablePlayers.length === 0) {
+    throw new Error("No players available to generate a match.");
+  }
+  
+  const minRoundsPlayed = Math.min(...availablePlayers.map(p => p.matchesPlayed || 0));
+  const eligiblePlayers = availablePlayers.filter(p => (p.matchesPlayed || 0) <= minRoundsPlayed + MAX_ROUNDS_DIFFERENCE);
+
+  if (eligiblePlayers.length < 4) {
+    throw new Error(`Not enough eligible players to generate a match. Found ${eligiblePlayers.length} players within the ${MAX_ROUNDS_DIFFERENCE} round limit.`);
   }
 
-  const histories = buildPlayerHistories(previousMatches, availablePlayers);
+  const histories = buildPlayerHistories(previousMatches, eligiblePlayers);
 
   // Create all possible groups of 4 players
-  const allPlayerGroups = getCombinations(availablePlayers, 4);
+  const allPlayerGroups = getCombinations(eligiblePlayers, 4);
 
   // Shuffle the groups to randomize the search order
   const shuffledPlayerGroups = shuffle(allPlayerGroups);
